@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Gestión Comercial — Activos por Colombia</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/portal/src/css/portal.css">
+</head>
+<body>
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <img class="login-logo" src="/sae/public/logos/logo-sae.svg" alt="Activos por Colombia">
+    <h1>Sistema de Gestión Comercial</h1>
+    <div class="sub">Activos por Colombia S.A.S.</div>
+    <label for="l-user">Usuario</label>
+    <input id="l-user" type="text" autocomplete="username" autocorrect="off" spellcheck="false">
+    <label for="l-pass">Contraseña</label>
+    <input id="l-pass" type="password" autocomplete="current-password">
+    <div id="login-error">Usuario o contraseña incorrectos.</div>
+    <button id="l-btn" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- ═══════════ SHELL (tabs + contenido) ═══════════ -->
+<div id="shell">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <img src="/sae/public/logos/logo-sae.svg" alt="">
+        <span>Sistema de Gestión Comercial</span>
+      </div>
+      <div class="session-info">
+        <span>Usuario: <b id="info-usuario">—</b></span>
+        <span>Rol: <b id="info-rol">—</b></span>
+        <button class="logout-link" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="topbar-inner" style="padding-top:0;">
+      <div class="tabs" id="tabs"></div>
+    </div>
+  </div>
+  <div class="tab-strip"></div>
+
+  <div class="tab-panels">
+    <div class="tab-panel active" id="panel-inicio" data-tab="inicio">
+      <h2>Bienvenido/a</h2>
+      <p>Elige un módulo en las pestañas de arriba para consultar la información que necesitas. Solo ves los módulos para los que tienes permiso.</p>
+      <div class="modulo-cards" id="inicio-cards"></div>
+    </div>
+
+    <div class="tab-panel" data-tab="sae">
+      <iframe id="frame-sae" title="Inventario SAE"></iframe>
+    </div>
+
+    <div class="tab-panel" data-tab="frv">
+      <iframe id="frame-frv" title="Consulta FRV"></iframe>
+    </div>
+
+    <div class="tab-panel" data-tab="vista_inmuebles">
+      <div class="panel-externo">
+        <h2>Inmuebles (Brokers)</h2>
+        <p>Este módulo pertenece a otro proceso de la empresa y se abre en una aplicación aparte, con su propio inicio de sesión. Solo lo ves porque tu rol tiene permiso.</p>
+        <a class="btn-externo" id="link-vista-inmuebles" href="#" target="_blank" rel="noopener">Abrir Vista Inmuebles ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TAB_LABELS = {
+  inicio: 'Inicio',
+  sae: 'Inventario SAE',
+  frv: 'Bienes FRV',
+  vista_inmuebles: 'Inmuebles (Brokers)',
+};
+
+const TAB_DESCRIPCIONES = {
+  sae: 'Consulta por folio (FMI): unidad, enlace del inmueble y expresión de interés.',
+  frv: 'Consulta de bienes del Fondo de Reparación a las Víctimas.',
+  vista_inmuebles: 'Consulta de inventario para brokers externos (app aparte, con permiso).',
+};
+
+let sesionActual = null;
+
+async function cargarSesion(){
+  const r = await fetch('/api/session');
+  const s = await r.json();
+  sesionActual = s;
+  if(s.autenticado){
+    mostrarShell(s);
+  }else{
+    mostrarLogin();
+  }
+}
+
+function mostrarLogin(){
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('shell').style.display = 'none';
+}
+
+function mostrarShell(s){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('shell').style.display = 'flex';
+  document.getElementById('info-usuario').textContent = s.usuario || '—';
+  document.getElementById('info-rol').textContent = s.role || '—';
+
+  construirTabs(s.modulos || {});
+
+  if(s.vista_inmuebles_url){
+    document.getElementById('link-vista-inmuebles').href = s.vista_inmuebles_url;
+  }
+
+  activarTab('inicio');
+}
+
+function construirTabs(modulos){
+  const cont = document.getElementById('tabs');
+  cont.innerHTML = '';
+  const cards = document.getElementById('inicio-cards');
+  cards.innerHTML = '';
+
+  // "Inicio" siempre visible.
+  const tabsVisibles = ['inicio', ...Object.keys(TAB_LABELS).filter(k => k !== 'inicio' && modulos[k])];
+
+  tabsVisibles.forEach(nombre=>{
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.textContent = TAB_LABELS[nombre];
+    btn.dataset.tab = nombre;
+    btn.onclick = () => activarTab(nombre);
+    cont.appendChild(btn);
+
+    if(nombre !== 'inicio'){
+      const card = document.createElement('div');
+      card.className = 'modulo-card';
+      card.onclick = () => activarTab(nombre);
+      card.innerHTML = `<h3>${TAB_LABELS[nombre]}</h3><p>${TAB_DESCRIPCIONES[nombre] || ''}</p>`;
+      cards.appendChild(card);
+    }
+  });
+}
+
+function activarTab(nombre){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === nombre));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tab === nombre));
+
+  // Carga perezosa de los iframes: solo se pide el módulo la primera vez
+  // que se abre su pestaña.
+  if(nombre === 'sae'){
+    const f = document.getElementById('frame-sae');
+    if(!f.src) f.src = '/sae/';
+  }
+  if(nombre === 'frv'){
+    const f = document.getElementById('frame-frv');
+    if(!f.src) f.src = '/frv/';
+  }
+}
+
+async function doLogin(){
+  const usuario = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  const err = document.getElementById('login-error');
+  const btn = document.getElementById('l-btn');
+  if(!usuario || !password) return;
+
+  err.style.display = 'none';
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Ingresando...';
+
+  try{
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ usuario, password }),
+    });
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+
+    if(!r.ok){
+      err.style.display = 'block';
+      document.getElementById('l-pass').value = '';
+      document.getElementById('l-pass').focus();
+      return;
+    }
+    await cargarSesion();
+  }catch(e){
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+    err.style.display = 'block';
+  }
+}
+
+async function cerrarSesion(){
+  try{
+    await fetch('/api/logout', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+  }catch(e){}
+  // Limpia los iframes para que la próxima sesión no arranque con datos
+  // de la sesión anterior en memoria.
+  document.getElementById('frame-sae').src = '';
+  document.getElementById('frame-frv').src = '';
+  mostrarLogin();
+}
+
+// Los módulos SAE y FRV corren dentro de un <iframe> y pueden cerrar la
+// sesión por inactividad propia; cuando eso pasa, avisan al portal por
+// postMessage para que toda la pantalla vuelva al login.
+window.addEventListener('message', (ev)=>{
+  if(ev.origin !== window.location.origin) return;
+  if(ev.data && ev.data.tipo === 'sesion-cerrada'){
+    document.getElementById('frame-sae').src = '';
+    document.getElementById('frame-frv').src = '';
+    mostrarLogin();
+  }
+});
+
+['l-user','l-pass'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+});
+
+cargarSesion();
+</script>
+</body>
+</html>

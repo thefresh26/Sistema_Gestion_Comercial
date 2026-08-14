@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consulta de Inventario — SAE</title>
+<link rel="icon" type="image/svg+xml" href="public/logos/logo-sae.svg">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <img src="public/logos/logo-sae.svg" alt="SAE" style="max-width: 200px; height: auto;">
+    </div>
+    <div class="login-title">Acceso al Sistema</div>
+    <div class="login-subtitle">Consulta de Inventario de Inmuebles — SAE</div>
+    <div class="lf-group">
+      <label>Usuario</label>
+      <input type="text" id="l-user" placeholder="usuario" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="lf-group">
+      <label>Contraseña</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="off">
+    </div>
+    <div id="l-err">Usuario o contraseña incorrectos. Verifica tus credenciales.</div>
+    <button id="l-btn" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow" id="hero-eyebrow">Consulta de Expresiones de Interés · Mayo 2026</div>
+    <h1>Consulta de <span>Expresiones de Interés</span> por Folio</h1>
+    <p>Ingresa uno o varios números de FMI para consultar la unidad a la que pertenecen, el enlace al inmueble y su expresión de interés.</p>
+    <div class="search-card">
+      <label class="search-label">Número(s) de FMI</label>
+      <div class="srow">
+        <textarea class="sinput sinput-multi" id="qi" placeholder="Ej: 50C-1874919, 50N-335270, 001-1020192" autocomplete="off" autocorrect="off" spellcheck="false" rows="2"></textarea>
+        <button class="sbtn" onclick="buscar()">
+          <svg style="display:inline;vertical-align:middle;margin-right:6px" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Consultar
+        </button>
+      </div>
+      <div class="shint">Puedes consultar varios folios a la vez: sepáralos con coma "," o con diagonal "/" (ej: 50C-1874919, 50N-335270 &nbsp;o&nbsp; 50C-1874919 / 50N-335270). Presiona Enter para buscar · Base actualizada al 04 de Mayo de 2026</div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div id="sb"></div>
+  <div id="result"></div>
+</main>
+
+<script src="src/js/app.js"></script>
+</body>
+</html>
