@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
+  <defs>
+    <style>
+      .logo-text { 
+        font-family: 'Montserrat', Arial, sans-serif; 
+        font-weight: 800; 
+        fill: #0d1f3c;
+      }
+      .logo-bars { }
+    </style>
+  </defs>
+  
+  <!-- Barras del logo -->
+  <g class="logo-bars" transform="translate(50, 50)">
+    <!-- Barra amarilla superior -->
+    <polygon points="0,0 300,0 250,100 -50,100" fill="#f5a800" transform="skewX(-20)"/>
+    <!-- Pequeños cuadrados blancos en la barra amarilla -->
+    <rect x="100" y="30" width="20" height="20" fill="white" transform="skewX(-20)"/>
+    <rect x="130" y="30" width="20" height="20" fill="white" transform="skewX(-20)"/>
+    <rect x="100" y="55" width="20" height="20" fill="white" transform="skewX(-20)"/>
+    <rect x="130" y="55" width="20" height="20" fill="white" transform="skewX(-20)"/>
+    <rect x="160" y="55" width="20" height="20" fill="white" transform="skewX(-20)"/>
+    
+    <!-- Barra azul media -->
+    <polygon points="0,120 300,120 250,220 -50,220" fill="#0d1f3c" transform="skewX(-20)"/>
+    
+    <!-- Barra roja inferior -->
+    <polygon points="0,240 300,240 250,340 -50,340" fill="#e03535" transform="skewX(-20)"/>
+  </g>
+  
+  <!-- Texto del logo -->
+  <g transform="translate(500, 160)">
+    <text x="0" y="0" class="logo-text" font-size="140">Activos <tspan font-size="90" baseline-shift="0">por</tspan></text>
+    <text x="0" y="140" class="logo-text" font-size="140">Colombia</text>
+  </g>
+</svg>

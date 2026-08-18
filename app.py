@@ -4,20 +4,17 @@ app.py — Sistema de Gestión Comercial (portal unificado).
 Une en un solo backend Flask, con un solo login y una sola sesión, los
 módulos que antes eran apps independientes:
 
-  - SAE   (antes Backend_SAE / Vista_inmuebles_SAE): consulta de inventario
-          de inmuebles por folio, con expresión de interés y código de
-          subasta.
-  - FRV   (antes consulta_frv): consulta de bienes del Fondo de Reparación
-          a las Víctimas, con campos de avalúo ocultos para el rol
-          "comercial".
-
-Vista_Inmuebles (el visor para brokers) NO se integra aquí: sigue siendo
-una aplicación aparte (su propio repo/despliegue), porque pertenece a otro
-proceso/área de la empresa. Lo único que hace este portal es mostrar un
-botón hacia esa aplicación, y solo lo muestra a los roles autorizados
-(ver MODULOS más abajo). El control de acceso real de esa app lo sigue
-haciendo ella misma con su propio login — este botón es una comodidad de
-navegación, no un reemplazo de esa seguridad.
+  - SAE             (antes Backend_SAE / Vista_inmuebles_SAE): consulta de
+                     inventario de inmuebles por folio, con expresión de
+                     interés y código de subasta.
+  - FRV              (antes consulta_frv): consulta de bienes del Fondo de
+                     Reparación a las Víctimas, con campos de avalúo
+                     ocultos para el rol "comercial".
+  - Vista_Inmuebles  (antes Vista_Inmuebles + Vista_Inmuebles_backend):
+                     consulta de inventario con semáforo de viabilidad.
+                     Fusionada aquí como una pestaña más — ya no es un
+                     despliegue aparte. Solo la ve el rol "comercial" (y
+                     "admin"); ver MODULOS más abajo.
 
 Variables de entorno necesarias (Render → Settings → Environment):
   SECRET_KEY                 - clave para firmar la sesión de Flask
@@ -25,9 +22,6 @@ Variables de entorno necesarias (Render → Settings → Environment):
                                 usan SAE, FRV y Vista_Inmuebles)
   SUPABASE_ANON_KEY           - anon key
   SUPABASE_SERVICE_ROLE_KEY   - service_role key (solo server-side)
-  VISTA_INMUEBLES_URL         - URL pública de la app Vista_Inmuebles
-                                (brokers), para el botón del portal.
-                                Ej: https://vista-inmuebles.onrender.com
 """
 
 import os
@@ -44,12 +38,10 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-VISTA_INMUEBLES_URL = os.environ.get("VISTA_INMUEBLES_URL", "")
 
 # Mapeo usuario corto -> correo real en Supabase Auth. Mismo patrón que los
 # tres proyectos originales, reunido en un solo lugar.
 USER_EMAILS = {
-    "broker2026":    "broker2026@sae-inmuebles.app",
     "comercial2026": "comercial2026@sae-inmuebles.app",
     "juridica2026":  "juridica2026@sae-inmuebles.app",
     "SAE":           "sae@sae-inmuebles.app",
@@ -61,9 +53,7 @@ USER_EMAILS = {
 MODULOS = {
     "sae": {"comercial", "admin"},
     "frv": {"comercial", "juridico", "admin"},
-    # "vista_inmuebles" no es una vista propia de este backend: es solo el
-    # botón hacia la app externa de brokers. Se muestra a estos roles.
-    "vista_inmuebles": {"comercial", "broker", "admin"},
+    "vista_inmuebles": {"comercial", "admin"},
 }
 
 CAMPOS_RESTRINGIDOS_COMERCIAL_FRV = [
@@ -189,7 +179,6 @@ def login():
         "ok": True,
         "role": role,
         "modulos": modulos_visibles(role),
-        "vista_inmuebles_url": VISTA_INMUEBLES_URL if role in MODULOS["vista_inmuebles"] else None,
     })
 
 
@@ -218,7 +207,6 @@ def get_session():
         "usuario": session.get("usuario"),
         "role": rol,
         "modulos": modulos_visibles(rol),
-        "vista_inmuebles_url": VISTA_INMUEBLES_URL if rol in MODULOS["vista_inmuebles"] else None,
     })
 
 
@@ -291,6 +279,51 @@ def frv_data():
 @requires_modulo("frv")
 def frv_static(filename):
     return send_from_directory(os.path.join(BASE_DIR, "frv"), filename)
+
+
+# ── MÓDULO VISTA_INMUEBLES ───────────────────────────────────────────────
+# Antes era una app aparte (Vista_Inmuebles + Vista_Inmuebles_backend).
+# Se fusionó aquí como una pestaña más, con el mismo login/sesión del
+# portal. Solo la ve el rol "comercial" (y "admin"), ver MODULOS arriba.
+
+@app.route("/vista_inmuebles/")
+@requires_modulo("vista_inmuebles")
+def vista_inmuebles_index():
+    return send_from_directory(os.path.join(BASE_DIR, "vista_inmuebles"), "index.html")
+
+
+@app.route("/vista_inmuebles/<path:filename>")
+def vista_inmuebles_static(filename):
+    return send_from_directory(os.path.join(BASE_DIR, "vista_inmuebles"), filename)
+
+
+@app.route("/api/vista_inmuebles/buscar")
+@requires_modulo("vista_inmuebles")
+def vista_inmuebles_buscar():
+    fmi = (request.args.get("fmi") or "").strip()
+    if not fmi:
+        return jsonify({"error": "Falta el FMI"}), 400
+
+    # RPC buscar_inmueble_activos ya existente en Supabase (junta
+    # inventario_SAE + existencia en inventario_Activos para el semáforo
+    # de viabilidad). Viene de 01_endurecer_vista_inmuebles.sql.
+    r = requests.post(
+        f"{SUPABASE_URL}/rest/v1/rpc/buscar_inmueble_activos",
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={"p_fmi": fmi},
+        timeout=15,
+    )
+    if r.status_code != 200:
+        return jsonify({"error": "Error al consultar la base de datos"}), 502
+
+    registrar_log("vista_inmuebles", session.get("email"), "busqueda", fmi, obtener_ip_cliente())
+
+    # La función SQL devuelve null (no filas) o el objeto jsonb del inmueble.
+    return jsonify(r.json())
 
 
 if __name__ == "__main__":

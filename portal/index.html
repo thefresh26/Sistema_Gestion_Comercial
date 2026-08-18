@@ -60,11 +60,7 @@
     </div>
 
     <div class="tab-panel" data-tab="vista_inmuebles">
-      <div class="panel-externo">
-        <h2>Inmuebles (Brokers)</h2>
-        <p>Este módulo pertenece a otro proceso de la empresa y se abre en una aplicación aparte, con su propio inicio de sesión. Solo lo ves porque tu rol tiene permiso.</p>
-        <a class="btn-externo" id="link-vista-inmuebles" href="#" target="_blank" rel="noopener">Abrir Vista Inmuebles ↗</a>
-      </div>
+      <iframe id="frame-vista_inmuebles" title="Vista Inmuebles"></iframe>
     </div>
   </div>
 </div>
@@ -80,7 +76,7 @@ const TAB_LABELS = {
 const TAB_DESCRIPCIONES = {
   sae: 'Consulta por folio (FMI): unidad, enlace del inmueble y expresión de interés.',
   frv: 'Consulta de bienes del Fondo de Reparación a las Víctimas.',
-  vista_inmuebles: 'Consulta de inventario para brokers externos (app aparte, con permiso).',
+  vista_inmuebles: 'Consulta de inventario con semáforo de viabilidad, por folio (FMI).',
 };
 
 let sesionActual = null;
@@ -108,11 +104,6 @@ function mostrarShell(s){
   document.getElementById('info-rol').textContent = s.role || '—';
 
   construirTabs(s.modulos || {});
-
-  if(s.vista_inmuebles_url){
-    document.getElementById('link-vista-inmuebles').href = s.vista_inmuebles_url;
-  }
-
   activarTab('inicio');
 }
 
@@ -157,6 +148,10 @@ function activarTab(nombre){
     const f = document.getElementById('frame-frv');
     if(!f.src) f.src = '/frv/';
   }
+  if(nombre === 'vista_inmuebles'){
+    const f = document.getElementById('frame-vista_inmuebles');
+    if(!f.src) f.src = '/vista_inmuebles/';
+  }
 }
 
 async function doLogin(){
@@ -200,19 +195,24 @@ async function cerrarSesion(){
   }catch(e){}
   // Limpia los iframes para que la próxima sesión no arranque con datos
   // de la sesión anterior en memoria.
-  document.getElementById('frame-sae').src = '';
-  document.getElementById('frame-frv').src = '';
+  limpiarFrames();
   mostrarLogin();
 }
 
-// Los módulos SAE y FRV corren dentro de un <iframe> y pueden cerrar la
-// sesión por inactividad propia; cuando eso pasa, avisan al portal por
-// postMessage para que toda la pantalla vuelva al login.
+function limpiarFrames(){
+  ['frame-sae', 'frame-frv', 'frame-vista_inmuebles'].forEach(id=>{
+    const f = document.getElementById(id);
+    if(f) f.src = '';
+  });
+}
+
+// Los módulos SAE, FRV y Vista_Inmuebles corren dentro de un <iframe> y
+// pueden cerrar la sesión por inactividad propia; cuando eso pasa, avisan
+// al portal por postMessage para que toda la pantalla vuelva al login.
 window.addEventListener('message', (ev)=>{
   if(ev.origin !== window.location.origin) return;
   if(ev.data && ev.data.tipo === 'sesion-cerrada'){
-    document.getElementById('frame-sae').src = '';
-    document.getElementById('frame-frv').src = '';
+    limpiarFrames();
     mostrarLogin();
   }
 });
