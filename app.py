@@ -35,6 +35,15 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=None)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
 
+# Endurecer la cookie de sesión: que nunca sea legible por JavaScript, que
+# solo viaje por HTTPS (Render ya sirve todo por HTTPS), y que no se envíe
+# en peticiones iniciadas desde otros sitios.
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
+
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -56,16 +65,44 @@ MODULOS = {
     "vista_inmuebles": {"comercial", "admin"},
 }
 
-CAMPOS_RESTRINGIDOS_COMERCIAL_FRV = [
+# Campos de FRV visibles para CUALQUIER rol con acceso al módulo (son
+# justo los que pinta frv/index.html). Se usa lista blanca a propósito:
+# así, si el scraper de FRV agrega columnas nuevas a data.json en el
+# futuro, no se exponen automáticamente al navegador — hay que agregarlas
+# a mano aquí primero.
+CAMPOS_BASE_FRV = [
+    "CÓDIGO",
+    "CÓDIGO FRV",
+    "NOMBRE BIEN",
+    "TIPO BIEN",
+    "FMI",
+    "POSTULADO",
+    "DEPARTAMENTO",
+    "MUNICIPIO",
+    "SISTEMA ADMON",
+    "EXTINCIÓN DOMINIO",
+    "ETAPA GESTIÓN",
+    "ÁREA HA CATASTRO",
+    "ÁREA HA ESCRITURA",
+    "ÁREA HA MATRÍCULA",
+    "ÁREA CONSTRUIDA",
+    "ESTADO FOLIO",
+    "ESTADO ACTUAL BIEN",
+    "FECHA APERTURA",
+    "FECHA INSPECC.",
+    "N° CATASTRAL",
+]
+
+# Campos de avalúo: solo se agregan para roles distintos de "comercial"
+# (jurídico, admin).
+CAMPOS_AVALUO_FRV = [
     "VALOR AVALÚO",
     "AÑO AVALÚO",
     "TIPO AVALÚO",
     "FECHA AVALÚO",
-    "TIENE AVALÚO",
     "VALOR AVALÚO COMERCIAL",
     "AÑO AVALÚO COMERCIAL",
     "FECHA AVALÚO COMERCIAL",
-    "TIENE AVALÚO COMERCIAL",
     "CON AVALÚO COMERC.",
 ]
 
@@ -265,11 +302,16 @@ def frv_data():
     with open(os.path.join(BASE_DIR, "frv", "data.json"), "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    if session.get("role") == "comercial":
-        data = [
-            {k: v for k, v in registro.items() if k not in CAMPOS_RESTRINGIDOS_COMERCIAL_FRV}
-            for registro in data
-        ]
+    # Lista blanca: solo salen los campos que la pantalla realmente usa,
+    # nunca la fila completa del data.json.
+    campos_permitidos = set(CAMPOS_BASE_FRV)
+    if session.get("role") != "comercial":
+        campos_permitidos |= set(CAMPOS_AVALUO_FRV)
+
+    data = [
+        {k: v for k, v in registro.items() if k in campos_permitidos}
+        for registro in data
+    ]
 
     registrar_log("frv", session.get("email"), "consulta_datos", None, obtener_ip_cliente())
     return jsonify(data)

@@ -88,6 +88,13 @@ python app.py
 Abre http://localhost:5000 — vas a ver la pantalla de login, y luego el
 portal con las pestañas según el rol con el que entres.
 
+> Nota: la cookie de sesión ahora se marca como `Secure` (solo viaja por
+> HTTPS). En producción (Render) no cambia nada, porque Render ya sirve
+> todo por HTTPS. Pero si pruebas en tu máquina con `http://localhost`
+> (sin HTTPS), el login puede no "pegar" la sesión. Si necesitas probar
+> en local, comenta temporalmente la línea `SESSION_COOKIE_SECURE=True`
+> en `app.py`.
+
 ## Estructura del proyecto
 
 ```
