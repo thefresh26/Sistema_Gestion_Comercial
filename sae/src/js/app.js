@@ -4,7 +4,7 @@
    Ni el ID del proyecto Supabase ni ninguna clave aparecen aquí. */
 
 /* ── CIERRE DE SESIÓN AUTOMÁTICO POR INACTIVIDAD ── */
-const MINUTOS_INACTIVIDAD = 10;
+const MINUTOS_INACTIVIDAD = 5;
 let temporizadorInactividad = null;
 
 function iniciarControlInactividad(){
