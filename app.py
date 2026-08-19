@@ -85,12 +85,16 @@ CAMPOS_BASE_FRV = [
     "ÁREA HA CATASTRO",
     "ÁREA HA ESCRITURA",
     "ÁREA HA MATRÍCULA",
+    "ÁREA M2 CATASTRO",
+    "ÁREA M2 ESCRITURA",
+    "ÁREA M2 MATRÍCULA",
     "ÁREA CONSTRUIDA",
     "ESTADO FOLIO",
     "ESTADO ACTUAL BIEN",
     "FECHA APERTURA",
     "FECHA INSPECC.",
     "N° CATASTRAL",
+    "CANT_FOTOS_LOCAL",
 ]
 
 # Campos de avalúo: solo se agregan para roles distintos de "comercial"
