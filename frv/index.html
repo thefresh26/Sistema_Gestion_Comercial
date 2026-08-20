@@ -37,25 +37,32 @@
 
   /* ── HEADER ─────────────────────────────────────────────── */
   header{
-    background:var(--ink);
+    background:linear-gradient(135deg,#0d1f3c 0%,#1e3a68 60%,#1a5bbf 100%);
     color:#fff;
     padding:0;
     border-bottom:4px solid var(--gold);
+    position:relative;
+    overflow:hidden;
   }
+  header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(245,168,0,.08);pointer-events:none;}
+  header::after{content:'';position:absolute;bottom:-80px;left:30%;width:200px;height:200px;border-radius:50%;background:rgba(26,91,191,.25);pointer-events:none;}
   .header-inner{
     max-width:1400px;
     margin:0 auto;
-    padding:22px 28px 18px;
+    padding:32px 28px 34px;
     display:flex;
     justify-content:space-between;
     align-items:flex-end;
     flex-wrap:wrap;
     gap:16px;
+    position:relative;
+    z-index:1;
   }
   .brand-eyebrow{
-    font-family:var(--mono);
+    font-family:var(--sans);
+    font-weight:700;
     font-size:11px;
-    letter-spacing:.14em;
+    letter-spacing:.18em;
     text-transform:uppercase;
     color:var(--gold);
     margin-bottom:6px;
@@ -63,7 +70,7 @@
   .brand-title{
     font-family:var(--serif);
     font-size:30px;
-    font-weight:600;
+    font-weight:800;
     margin:0;
     letter-spacing:-0.01em;
   }
