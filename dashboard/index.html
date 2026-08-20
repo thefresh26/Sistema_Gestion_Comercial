@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estadísticas de Ventas</title>
+<link rel="icon" type="image/png" href="/portal/public/logos/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="brand-eyebrow">Área Comercial</div>
+      <h1 class="brand-title">Estadísticas de Ventas</h1>
+      <p class="brand-sub">Folios y unidades vendidas en SAE y FRV, por año</p>
+    </div>
+    <button class="btn-tabla" id="btn-toggle-tabla">Ver como tabla</button>
+  </div>
+</header>
+
+<main>
+  <div id="estado-carga">Cargando datos…</div>
+  <div id="contenido" style="display:none;">
+
+    <section class="stat-grid" id="stat-grid"></section>
+
+    <section class="filtros">
+      <div class="filtro-grupo">
+        <label for="filtro-anio">Año</label>
+        <select id="filtro-anio"><option value="todos">Todos</option></select>
+      </div>
+      <div class="filtro-hint">Haz clic en "SAE" o "FRV" en la leyenda de cualquier gráfica para mostrar/ocultar esa serie.</div>
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-head">
+        <h2>Folios / unidades vendidas por año</h2>
+        <div class="legend" id="legend-cantidad"></div>
+      </div>
+      <div class="chart-body" id="chart-cantidad"></div>
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-head">
+        <h2>Valor total vendido por año (COP)</h2>
+        <div class="legend" id="legend-valor"></div>
+      </div>
+      <div class="chart-body" id="chart-valor"></div>
+    </section>
+
+    <p class="nota-frv">
+      <strong>Nota sobre FRV:</strong> el archivo fuente de FRV no registra la
+      fecha exacta en que cada bien se vendió (etapa "Monetizado"), solo su
+      estado actual. El primer año mostrado para FRV es un bloque histórico
+      acumulado (todo lo que ya estaba monetizado al activar este panel); de
+      ahí en adelante, cada año refleja lo detectado como nuevo en ese
+      período real.
+    </p>
+
+    <section class="tabla-wrap" id="tabla-wrap" style="display:none;">
+      <table id="tabla-datos">
+        <thead>
+          <tr><th>Sistema</th><th>Año</th><th>Cantidad</th><th>Valor total</th></tr>
+        </thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </section>
+  </div>
+  <div id="estado-error" style="display:none;"></div>
+</main>
+
+<div id="tooltip" class="tooltip" role="tooltip"></div>
+
+<script src="src/js/app.js"></script>
+</body>
+</html>

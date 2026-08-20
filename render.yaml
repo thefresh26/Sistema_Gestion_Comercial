@@ -15,3 +15,29 @@ services:
         sync: false
       - key: VISTA_INMUEBLES_URL
         sync: false
+
+  # Tarea programada del dashboard "Estadísticas": recalcula cuántos
+  # folios se vendieron (SAE + FRV) y su valor, por año, y guarda el
+  # resultado en Supabase. El portal (arriba) SOLO lee esa tabla — nunca
+  # se conecta en vivo a la base "intranet" de Azure.
+  - type: cron
+    name: actualizar-dashboard-ventas
+    env: python
+    schedule: "0 11 * * *"  # todos los días 11:00 UTC (6:00 a.m. Colombia)
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/actualizar_dashboard.py
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: INTRANET_DB_HOST
+        sync: false
+      - key: INTRANET_DB_PORT
+        sync: false
+      - key: INTRANET_DB_NAME
+        sync: false
+      - key: INTRANET_DB_USER
+        sync: false
+      - key: INTRANET_DB_PASSWORD
+        sync: false

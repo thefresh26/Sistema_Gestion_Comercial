@@ -63,6 +63,7 @@ MODULOS = {
     "sae": {"comercial", "admin"},
     "frv": {"comercial", "juridico", "admin"},
     "vista_inmuebles": {"comercial", "admin"},
+    "dashboard": {"comercial", "admin"},
 }
 
 # Campos de FRV visibles para CUALQUIER rol con acceso al módulo (son
@@ -369,6 +370,41 @@ def vista_inmuebles_buscar():
     registrar_log("vista_inmuebles", session.get("email"), "busqueda", fmi, obtener_ip_cliente())
 
     # La función SQL devuelve null (no filas) o el objeto jsonb del inmueble.
+    return jsonify(r.json())
+
+
+# ── MÓDULO DASHBOARD ("Estadísticas") ───────────────────────────────────
+# No consulta ninguna base de datos externa en vivo: solo lee la tabla
+# dashboard_ventas_anual, que el Cron Job (scripts/actualizar_dashboard.py)
+# mantiene actualizada. Así, un problema de red hacia la base "intranet"
+# de Azure nunca puede tumbar ni hacer lento este tab.
+
+@app.route("/dashboard/")
+@requires_modulo("dashboard")
+def dashboard_index():
+    return send_from_directory(os.path.join(BASE_DIR, "dashboard"), "index.html")
+
+
+@app.route("/dashboard/<path:filename>")
+def dashboard_static(filename):
+    return send_from_directory(os.path.join(BASE_DIR, "dashboard"), filename)
+
+
+@app.route("/api/dashboard/resumen")
+@requires_modulo("dashboard")
+def dashboard_resumen():
+    r = requests.get(
+        f"{SUPABASE_URL}/rest/v1/dashboard_ventas_anual?select=sistema,anio,cantidad,valor_total,es_acumulado_historico,actualizado_en&order=anio.asc",
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        },
+        timeout=10,
+    )
+    if r.status_code != 200:
+        return jsonify({"error": "Error al consultar el resumen"}), 502
+
+    registrar_log("dashboard", session.get("email"), "consulta", None, obtener_ip_cliente())
     return jsonify(r.json())
 
 
