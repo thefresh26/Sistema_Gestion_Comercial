@@ -1,0 +1,37 @@
+# ============================================================================
+# EJEMPLO — tarea programada local para actualizar el dashboard "Estadísticas"
+# ============================================================================
+# Esta es solo una PLANTILLA, segura para subir a git — no tiene ninguna
+# contraseña real adentro. Para usarla de verdad:
+#
+#   1. Copia este archivo en la misma carpeta y ponle de nombre
+#      "tarea_programada_local.ps1" (sin el ".ejemplo" al final).
+#   2. Abre esa copia con el Bloc de notas y reemplaza los valores de
+#      ejemplo (los que dicen "PON_AQUI...") por los reales.
+#   3. Esa copia (tarea_programada_local.ps1) nunca se sube a git — ya está
+#      en el archivo .gitignore para que git la ignore siempre. Se queda
+#      solo en este computador, porque tiene la contraseña real.
+#   4. Configura la Tarea Programada de Windows para que ejecute ese
+#      archivo con PowerShell (instrucciones aparte).
+# ============================================================================
+
+$env:SUPABASE_URL = "https://niemyawlnebylpidfefh.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY = 'PON_AQUI_LA_LLAVE_SECRETA_DE_SUPABASE'
+
+$env:INTRANET_DB_HOST = "actibox-ro.postgres.database.azure.com"
+$env:INTRANET_DB_PORT = "5432"
+$env:INTRANET_DB_NAME = "intranet"
+$env:INTRANET_DB_USER = "actibox_admin_2025"
+$env:INTRANET_DB_PASSWORD = 'PON_AQUI_LA_CONTRASEÑA_REAL'
+
+# Ruta a la carpeta del proyecto en este computador — ajusta si tu carpeta
+# es distinta.
+Set-Location "C:\Users\SantiagoEscorcia\Desktop\Master\sistema_comercial\sistema_comercial"
+
+# Corre el script que calcula y guarda los totales del dashboard.
+python scripts\actualizar_dashboard.py
+
+# Deja un registro de cada corrida (fecha + con qué código terminó), para
+# poder revisar después si algún día falló y por qué.
+$fecha = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+Add-Content -Path "scripts\tarea_programada_log.txt" -Value "[$fecha] Corrida terminada con codigo de salida $LASTEXITCODE"

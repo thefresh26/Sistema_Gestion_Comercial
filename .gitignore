@@ -1,3 +1,10 @@
+# Script real de la tarea programada local — tiene la contraseña real de la
+# base de datos, así que NUNCA se sube a git. Se queda solo en el computador
+# donde corre la Tarea Programada de Windows. La versión segura para subir a
+# git (sin contraseña) es scripts/tarea_programada_local.ps1.ejemplo
+scripts/tarea_programada_local.ps1
+scripts/tarea_programada_log.txt
+
 __pycache__/
 *.pyc
 .env
