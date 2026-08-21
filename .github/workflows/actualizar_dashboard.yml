@@ -1,0 +1,40 @@
+name: Actualizar Dashboard de Ventas
+
+# Corre sola, todos los días, sin depender de ningún computador prendido ni
+# de una tarjeta de crédito (a diferencia de un Cron Job de Render). Usa los
+# minutos gratuitos que GitHub da a todo repositorio para GitHub Actions —
+# esta tarea corre unos segundos, así que no hay riesgo de agotarlos.
+#
+# También se puede lanzar a mano desde la pestaña "Actions" del repositorio
+# en GitHub (botón "Run workflow"), sin esperar al horario.
+
+on:
+  schedule:
+    - cron: "0 11 * * *"   # todos los días 11:00 UTC = 6:00 a.m. Colombia
+  workflow_dispatch: {}     # permite lanzarlo a mano desde GitHub
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Calcular y guardar los totales del dashboard
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INTRANET_DB_HOST: ${{ secrets.INTRANET_DB_HOST }}
+          INTRANET_DB_PORT: ${{ secrets.INTRANET_DB_PORT }}
+          INTRANET_DB_NAME: ${{ secrets.INTRANET_DB_NAME }}
+          INTRANET_DB_USER: ${{ secrets.INTRANET_DB_USER }}
+          INTRANET_DB_PASSWORD: ${{ secrets.INTRANET_DB_PASSWORD }}
+        run: python scripts/actualizar_dashboard.py
