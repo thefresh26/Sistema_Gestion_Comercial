@@ -224,16 +224,20 @@ function construirTabla(filasCrudas){
   body.innerHTML = filas
     .slice()
     .sort((a,b) => a.anio - b.anio || (a.mes||0) - (b.mes||0) || a.sistema.localeCompare(b.sistema))
-    .map(f => `
+    .map(f => {
+      const color = f.sistema === 'SAE' ? 'var(--serie-sae)' : 'var(--serie-frv)';
+      const medidaTexto = f.medida === 'total' ? 'Bienes (FRV)' : (f.medida === 'unidad' ? 'Unidades' : 'Folios');
+      return `
       <tr>
-        <td>${f.sistema}</td>
+        <td><span class="tabla-sistema" style="--col:${color}"><span class="dot"></span>${f.sistema}</span></td>
         <td>${f.anio}</td>
         <td>${f.mes ? NOMBRES_MES[f.mes] : '—'}</td>
-        <td>${f.medida === 'total' ? 'Bienes (FRV)' : (f.medida === 'unidad' ? 'Unidades' : 'Folios')}</td>
-        <td>${fmtNumero(f.cantidad)}</td>
-        <td>${fmtMoneda(f.valor_total)}${f.es_acumulado_historico ? ' (histórico)' : ''}</td>
+        <td><span class="tabla-medida">${medidaTexto}</span></td>
+        <td class="tabla-cantidad">${fmtNumero(f.cantidad)}</td>
+        <td class="tabla-valor">${fmtMoneda(f.valor_total)}${f.es_acumulado_historico ? ' <span class="tabla-historico">histórico</span>' : ''}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function construirFiltroAnio(){
@@ -288,7 +292,7 @@ document.getElementById('btn-toggle-tabla').addEventListener('click', () => {
   const wrap = document.getElementById('tabla-wrap');
   const visible = wrap.style.display !== 'none';
   wrap.style.display = visible ? 'none' : 'block';
-  document.getElementById('btn-toggle-tabla').textContent = visible ? 'Ver como tabla' : 'Ver como gráfica';
+  document.getElementById('btn-toggle-tabla').textContent = visible ? 'Ver tabla' : 'Ocultar tabla';
 });
 
 document.getElementById('filtro-anio').addEventListener('change', (ev) => {
