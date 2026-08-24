@@ -65,11 +65,13 @@ USER_EMAILS = {
 #   admin           -> ve todo (se muestra como "Administrador" en el panel)
 #   juridico        -> solo FRV (con los campos de avalúo)
 #   sae             -> solo el inventario SAE
-#   comunicaciones  -> solo FRV (sin los campos de avalúo, igual que comercial)
+#   comunicaciones  -> FRV (sin los campos de avalúo, igual que comercial) y
+#                      Vista_Inmuebles ("Inmuebles", los inmuebles normales
+#                      con semáforo de viabilidad, no FRV)
 MODULOS = {
     "sae": {"comercial", "admin", "sae"},
     "frv": {"comercial", "juridico", "admin", "comunicaciones"},
-    "vista_inmuebles": {"comercial", "admin"},
+    "vista_inmuebles": {"comercial", "admin", "comunicaciones"},
     "dashboard": {"comercial", "admin"},
     # Panel de permisos: solo lo abre el rol admin (ver pregunta al usuario).
     "admin": {"admin"},
