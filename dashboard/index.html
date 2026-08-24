@@ -57,6 +57,13 @@
           <button type="button" class="vista-btn" data-vista="mes">Mes</button>
         </div>
       </div>
+      <div class="filtro-grupo filtro-grupo-vista">
+        <label>SAE: contar por</label>
+        <div class="vista-toggle" id="medida-toggle">
+          <button type="button" class="vista-btn activo" data-medida="folio">Folios</button>
+          <button type="button" class="vista-btn" data-medida="unidad">Unidades</button>
+        </div>
+      </div>
       <div class="filtro-hint">Haz clic en "SAE" o "FRV" en la leyenda de cualquier gráfica para mostrar/ocultar esa serie.</div>
     </section>
 
@@ -87,18 +94,22 @@
     </section>
 
     <p class="nota-frv">
-      <strong>Nota sobre FRV:</strong> el archivo fuente de FRV no registra la
+      <strong>Nota sobre SAE:</strong> "Folios" cuenta cada registro individual
+      vendido; "Unidades" agrupa los folios que pertenecen a un mismo grupo (una
+      unidad puede tener varios folios, y se venden todos juntos) — un folio sin
+      grupo cuenta como una unidad de un solo folio.
+      <br><strong>Nota sobre FRV:</strong> el archivo fuente de FRV no registra la
       fecha exacta en que cada bien se vendió (etapa "Monetizado"), solo su
-      estado actual. El primer año mostrado para FRV es un bloque histórico
-      acumulado (todo lo que ya estaba monetizado al activar este panel); de
-      ahí en adelante, cada año refleja lo detectado como nuevo en ese
-      período real.
+      estado actual, y no maneja la distinción folio/unidad. El primer período
+      mostrado para FRV es un bloque histórico acumulado (todo lo que ya estaba
+      monetizado al activar este panel); de ahí en adelante, cada período refleja
+      lo detectado como nuevo en ese momento real.
     </p>
 
     <section class="tabla-wrap" id="tabla-wrap" style="display:none;">
       <table id="tabla-datos">
         <thead>
-          <tr><th>Sistema</th><th>Año</th><th>Mes</th><th>Cantidad</th><th>Valor total</th></tr>
+          <tr><th>Sistema</th><th>Año</th><th>Mes</th><th>Medida</th><th>Cantidad</th><th>Valor total</th></tr>
         </thead>
         <tbody id="tabla-body"></tbody>
       </table>

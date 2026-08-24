@@ -7,6 +7,13 @@ a dos fuentes:
   1. La base de datos "intranet" en Azure (solo lectura), para sacar
      cuántos inmuebles de SAE están en estado "Vendido" y su valor, por
      año Y MES — usando fecha_cambio_estado, que sí es una fecha real.
+     Se calculan DOS medidas, porque en el negocio son cosas distintas:
+       - "folio": cada registro individual de mst_inmuebles (cada folio
+         de matrícula).
+       - "unidad": un conjunto de folios agrupados en mst_inmuebles bajo
+         un mismo grupo_id (una "unidad" puede tener varios folios; al
+         venderse la unidad se venden todos sus folios juntos). Un folio
+         sin grupo_id es una unidad de un solo folio.
 
   2. El archivo frv/data.json, para sacar cuántos bienes de FRV están en
      etapa "MONETIZADO" y su valor (VALOR AVALÚO — ver nota abajo). Ese
@@ -94,23 +101,57 @@ def calcular_sae():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT
-                    EXTRACT(YEAR FROM fecha_cambio_estado)::int AS anio,
-                    EXTRACT(MONTH FROM fecha_cambio_estado)::int AS mes,
-                    COUNT(*) AS cantidad,
-                    SUM(COALESCE(precio_base_venta, valor_avaluo_comercial, valor_minimo_venta, 0)) AS valor_total
-                FROM mst_inmuebles
-                WHERE estado_id = %s AND operator_id = %s
-                GROUP BY anio, mes
-                ORDER BY anio, mes;
-            """, (ESTADO_VENDIDO_ID, OPERATOR_ID_SAE))
+                WITH vendidos AS (
+                    SELECT
+                        id,
+                        grupo_id,
+                        fecha_cambio_estado,
+                        COALESCE(precio_base_venta, valor_avaluo_comercial, valor_minimo_venta, 0) AS valor
+                    FROM mst_inmuebles
+                    WHERE estado_id = %(estado_id)s AND operator_id = %(operator_id)s
+                ),
+                folios AS (
+                    SELECT
+                        EXTRACT(YEAR FROM fecha_cambio_estado)::int AS anio,
+                        EXTRACT(MONTH FROM fecha_cambio_estado)::int AS mes,
+                        COUNT(*) AS cantidad,
+                        SUM(valor) AS valor_total,
+                        'folio' AS medida
+                    FROM vendidos
+                    GROUP BY anio, mes
+                ),
+                unidades_base AS (
+                    -- Cada "unidad" es un grupo_id distinto (o, si no tiene
+                    -- grupo, el folio individual actúa como su propia unidad).
+                    SELECT
+                        COALESCE(grupo_id::text, 'ind-' || id::text) AS unidad_key,
+                        MIN(fecha_cambio_estado) AS fecha_unidad,
+                        SUM(valor) AS valor_unidad
+                    FROM vendidos
+                    GROUP BY COALESCE(grupo_id::text, 'ind-' || id::text)
+                ),
+                unidades AS (
+                    SELECT
+                        EXTRACT(YEAR FROM fecha_unidad)::int AS anio,
+                        EXTRACT(MONTH FROM fecha_unidad)::int AS mes,
+                        COUNT(*) AS cantidad,
+                        SUM(valor_unidad) AS valor_total,
+                        'unidad' AS medida
+                    FROM unidades_base
+                    GROUP BY anio, mes
+                )
+                SELECT anio, mes, cantidad, valor_total, medida FROM folios
+                UNION ALL
+                SELECT anio, mes, cantidad, valor_total, medida FROM unidades
+                ORDER BY anio, mes, medida;
+            """, {"estado_id": ESTADO_VENDIDO_ID, "operator_id": OPERATOR_ID_SAE})
             filas = cur.fetchall()
     finally:
         conn.close()
 
     resultado = {}
-    for anio, mes, cantidad, valor_total in filas:
-        resultado[(anio, mes)] = {"cantidad": cantidad, "valor_total": float(valor_total or 0)}
+    for anio, mes, cantidad, valor_total, medida in filas:
+        resultado[(anio, mes, medida)] = {"cantidad": cantidad, "valor_total": float(valor_total or 0)}
     log(f"SAE: {resultado}")
     return resultado
 
@@ -208,19 +249,31 @@ def calcular_frv():
     return dict(por_anio_mes)
 
 
-def guardar_resultado(sistema, por_anio_mes, clave_primera_corrida=None):
+def guardar_resultado(sistema, datos_por_clave, clave_primera_corrida=None):
+    """
+    datos_por_clave: dict con clave (anio, mes) o (anio, mes, medida) —> {cantidad, valor_total}.
+    Si la clave no trae medida (FRV, que no distingue folio/unidad), se guarda con medida='total'.
+    """
     filas = []
-    for (anio, mes), datos in por_anio_mes.items():
+    for clave, datos in datos_por_clave.items():
+        if len(clave) == 3:
+            anio, mes, medida = clave
+            clave_comparar = (anio, mes)
+        else:
+            anio, mes = clave
+            medida = "total"
+            clave_comparar = clave
         filas.append({
             "sistema": sistema,
             "anio": anio,
             "mes": mes,
+            "medida": medida,
             "cantidad": datos["cantidad"],
             "valor_total": datos["valor_total"],
-            "es_acumulado_historico": ((anio, mes) == clave_primera_corrida),
+            "es_acumulado_historico": (clave_comparar == clave_primera_corrida),
             "actualizado_en": "now()",
         })
-    supabase_upsert("dashboard_ventas_anual", filas, on_conflict="sistema,anio,mes")
+    supabase_upsert("dashboard_ventas_anual", filas, on_conflict="sistema,anio,mes,medida")
 
 
 def main():

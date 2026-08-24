@@ -7,6 +7,7 @@ const sistemasOcultos = new Set();   // sistemas apagados por clic en la leyenda
 let anioFiltro = 'todos';            // 'todos' o un año específico
 let mesFiltro = 'todos';             // 'todos' o un mes específico (1-12)
 let vista = 'anio';                  // 'anio' (agrupa por año) o 'mes' (por año y mes)
+let medidaFiltro = 'folio';          // 'folio' o 'unidad' — solo aplica a SAE; FRV siempre usa 'total'
 
 function fmtMoneda(n){
   return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(n);
@@ -31,7 +32,9 @@ function datosFiltrados(){
   return datosCompletos.filter(f =>
     !sistemasOcultos.has(f.sistema) &&
     (anioFiltro === 'todos' || String(f.anio) === String(anioFiltro)) &&
-    (mesFiltro === 'todos' || String(f.mes) === String(mesFiltro))
+    (mesFiltro === 'todos' || String(f.mes) === String(mesFiltro)) &&
+    // FRV no distingue folio/unidad (siempre 'total'); SAE respeta el toggle.
+    (f.medida === 'total' || f.medida === medidaFiltro)
   );
 }
 
@@ -43,7 +46,7 @@ function filasAgrupadas(filas){
     filas.forEach(f => {
       const clave = `${f.anio}|${f.sistema}`;
       if (!acc.has(clave)){
-        acc.set(clave, { anio: f.anio, mes: null, sistema: f.sistema, cantidad: 0, valor_total: 0, es_acumulado_historico: false });
+        acc.set(clave, { anio: f.anio, mes: null, sistema: f.sistema, medida: f.medida, cantidad: 0, valor_total: 0, es_acumulado_historico: false });
       }
       const grupo = acc.get(clave);
       grupo.cantidad += f.cantidad;
@@ -189,12 +192,13 @@ function construirStatTiles(filas){
     totales[f.sistema].valor_total += Number(f.valor_total);
   });
 
+  const etiquetaMedida = medidaFiltro === 'unidad' ? 'unidades' : 'folios';
   const grid = document.getElementById('stat-grid');
   grid.innerHTML = `
     <div class="stat-tile ${sistemasOcultos.has('SAE') ? 'oculto' : ''}">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.SAE}"></span>SAE · Vendidos</div>
       <div class="stat-value">${fmtNumero(totales.SAE.cantidad)}</div>
-      <div class="stat-sub">folios / unidades</div>
+      <div class="stat-sub">${etiquetaMedida}</div>
     </div>
     <div class="stat-tile ${sistemasOcultos.has('SAE') ? 'oculto' : ''}">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.SAE}"></span>SAE · Valor vendido</div>
@@ -225,6 +229,7 @@ function construirTabla(filasCrudas){
         <td>${f.sistema}</td>
         <td>${f.anio}</td>
         <td>${f.mes ? NOMBRES_MES[f.mes] : '—'}</td>
+        <td>${f.medida === 'total' ? '—' : (f.medida === 'unidad' ? 'Unidades' : 'Folios')}</td>
         <td>${fmtNumero(f.cantidad)}</td>
         <td>${fmtMoneda(f.valor_total)}${f.es_acumulado_historico ? ' (histórico)' : ''}</td>
       </tr>
@@ -300,7 +305,15 @@ document.getElementById('vista-toggle').addEventListener('click', (ev) => {
   const btn = ev.target.closest('.vista-btn');
   if (!btn) return;
   vista = btn.dataset.vista;
-  document.querySelectorAll('.vista-btn').forEach(b => b.classList.toggle('activo', b === btn));
+  document.querySelectorAll('#vista-toggle .vista-btn').forEach(b => b.classList.toggle('activo', b === btn));
+  renderizarTodo();
+});
+
+document.getElementById('medida-toggle').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.vista-btn');
+  if (!btn) return;
+  medidaFiltro = btn.dataset.medida;
+  document.querySelectorAll('#medida-toggle .vista-btn').forEach(b => b.classList.toggle('activo', b === btn));
   renderizarTodo();
 });
 
