@@ -113,8 +113,8 @@ function mostrarLogin(){
 function mostrarShell(s){
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('shell').style.display = 'flex';
-  document.getElementById('info-usuario').textContent = s.usuario || '—';
-  document.getElementById('info-rol').textContent = s.role || '—';
+  document.getElementById('info-usuario').textContent = s.nombre || s.usuario || '—';
+  document.getElementById('info-rol').textContent = s.role_legible || s.role || '—';
 
   construirTabs(s.modulos || {});
   activarTab('inicio');

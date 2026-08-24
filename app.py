@@ -241,17 +241,22 @@ def login():
 
     data = r.json()
     user = data.get("user", {})
-    role = (user.get("user_metadata") or {}).get("role", "comercial")
+    metadata = user.get("user_metadata") or {}
+    role = metadata.get("role", "comercial")
+    nombre = metadata.get("nombre", "")
 
     session["usuario"] = usuario
     session["email"] = email
     session["role"] = role
+    session["nombre"] = nombre
 
     registrar_log("portal", email, "login", None, obtener_ip_cliente())
 
     return jsonify({
         "ok": True,
         "role": role,
+        "role_legible": ROLES_VISIBLES.get(role, role),
+        "nombre": nombre,
         "modulos": modulos_visibles(role),
     })
 
@@ -279,7 +284,9 @@ def get_session():
     return jsonify({
         "autenticado": True,
         "usuario": session.get("usuario"),
+        "nombre": session.get("nombre", ""),
         "role": rol,
+        "role_legible": ROLES_VISIBLES.get(rol, rol),
         "modulos": modulos_visibles(rol),
     })
 
@@ -492,18 +499,20 @@ def admin_listar_usuarios():
     salida = []
     for u in usuarios:
         email = u.get("email", "")
-        rol = (u.get("user_metadata") or {}).get("role", "comercial")
+        metadata = u.get("user_metadata") or {}
+        rol = metadata.get("role", "comercial")
         salida.append({
             "id": u.get("id"),
             "email": email,
             "usuario": emails_a_usuario.get(email, email),
+            "nombre": metadata.get("nombre", ""),
             "rol": rol,
             "deshabilitado": bool(u.get("banned_until")),
             "creado_en": u.get("created_at"),
             "ultimo_ingreso": u.get("last_sign_in_at"),
             "es_yo": email == session.get("email"),
         })
-    salida.sort(key=lambda x: x["usuario"].lower())
+    salida.sort(key=lambda x: (x["nombre"] or x["usuario"]).lower())
     matriz = {modulo: sorted(roles) for modulo, roles in MODULOS.items()}
     return jsonify({
         "usuarios": salida,
@@ -520,6 +529,7 @@ def admin_crear_usuario():
     usuario = (body.get("usuario") or "").strip()
     password = body.get("password") or ""
     rol = body.get("rol") or "comercial"
+    nombre = (body.get("nombre") or "").strip()
 
     if not usuario or not password:
         return jsonify({"error": "Faltan usuario o contraseña"}), 400
@@ -539,7 +549,7 @@ def admin_crear_usuario():
             "email": email,
             "password": password,
             "email_confirm": True,
-            "user_metadata": {"role": rol},
+            "user_metadata": {"role": rol, "nombre": nombre},
         },
         timeout=15,
     )
@@ -548,7 +558,7 @@ def admin_crear_usuario():
         detalle = cuerpo.get("msg") or cuerpo.get("error_description") or "Error al crear el usuario"
         return jsonify({"error": detalle}), 400
 
-    registrar_log("admin", session.get("email"), "crear_usuario", f"{email} -> rol {rol}", obtener_ip_cliente())
+    registrar_log("admin", session.get("email"), "crear_usuario", f"{email} ({nombre}) -> rol {rol}", obtener_ip_cliente())
     return jsonify({"ok": True})
 
 
@@ -572,6 +582,8 @@ def admin_actualizar_usuario(user_id):
 
     payload = {}
     detalle_log = []
+    metadata_actual = actual.get("user_metadata") or {}
+    metadata_cambio = False
 
     if "rol" in body:
         rol = body["rol"]
@@ -579,10 +591,17 @@ def admin_actualizar_usuario(user_id):
             return jsonify({"error": "Rol inválido"}), 400
         if es_yo and rol != "admin":
             return jsonify({"error": "No puedes quitarte tu propio rol de administrador"}), 400
-        metadata_actual = actual.get("user_metadata") or {}
         metadata_actual["role"] = rol
-        payload["user_metadata"] = metadata_actual
+        metadata_cambio = True
         detalle_log.append(f"rol -> {rol}")
+
+    if "nombre" in body:
+        metadata_actual["nombre"] = (body["nombre"] or "").strip()
+        metadata_cambio = True
+        detalle_log.append(f"nombre -> {metadata_actual['nombre']}")
+
+    if metadata_cambio:
+        payload["user_metadata"] = metadata_actual
 
     if "deshabilitado" in body:
         if es_yo and body["deshabilitado"]:

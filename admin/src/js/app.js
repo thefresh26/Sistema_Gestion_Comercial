@@ -78,12 +78,13 @@ function construirTablaUsuarios(){
   const body = document.getElementById('tabla-usuarios-body');
   body.innerHTML = usuarios.map(u => {
     const selectId = `rol-${u.id}`;
+    const nombreMostrado = u.nombre || u.usuario;
     return `
       <tr class="${u.deshabilitado ? 'fila-deshabilitada' : ''}">
         <td>
           <div class="usuario-celda">
-            <span class="usuario-nombre">${u.usuario}${u.es_yo ? '<span class="usuario-tu">Tú</span>' : ''}</span>
-            <span class="usuario-email">${u.email}</span>
+            <span class="usuario-nombre">${nombreMostrado}${u.es_yo ? '<span class="usuario-tu">Tú</span>' : ''}</span>
+            <span class="usuario-email">${u.usuario}${u.usuario !== u.email ? ' · ' + u.email : ''}</span>
           </div>
         </td>
         <td>
@@ -93,7 +94,7 @@ function construirTablaUsuarios(){
         <td>${fmtFecha(u.ultimo_ingreso)}</td>
         <td>
           <div class="acciones">
-            <button class="btn-accion" data-accion="clave" data-id="${u.id}" data-nombre="${u.usuario}">Restablecer clave</button>
+            <button class="btn-accion" data-accion="editar" data-id="${u.id}" data-nombre="${nombreMostrado}">Editar</button>
             ${u.deshabilitado
               ? `<button class="btn-accion exito" data-accion="habilitar" data-id="${u.id}" ${u.es_yo ? 'disabled' : ''}>Habilitar</button>`
               : `<button class="btn-accion peligro" data-accion="deshabilitar" data-id="${u.id}" ${u.es_yo ? 'disabled' : ''}>Deshabilitar</button>`
@@ -117,7 +118,7 @@ function construirTablaUsuarios(){
   body.querySelectorAll('.btn-accion').forEach(btn => {
     btn.addEventListener('click', () => {
       const accion = btn.dataset.accion;
-      if(accion === 'clave') abrirModalClave(btn.dataset.id, btn.dataset.nombre);
+      if(accion === 'editar') abrirModalClave(btn.dataset.id, btn.dataset.nombre);
       if(accion === 'deshabilitar') cambiarEstado(btn.dataset.id, true);
       if(accion === 'habilitar') cambiarEstado(btn.dataset.id, false);
     });
@@ -165,6 +166,7 @@ async function cambiarEstado(id, deshabilitado){
 // ── Modal: nuevo usuario ──────────────────────────────────────────────
 
 function abrirModalNuevo(){
+  document.getElementById('nu-nombre').value = '';
   document.getElementById('nu-usuario').value = '';
   document.getElementById('nu-password').value = '';
   construirSelectRoles(document.getElementById('nu-rol'), 'comercial');
@@ -191,6 +193,7 @@ function mostrarErrorModal(id, mensaje){
 }
 
 async function crearUsuario(){
+  const nombre = document.getElementById('nu-nombre').value.trim();
   const usuario = document.getElementById('nu-usuario').value.trim();
   const password = document.getElementById('nu-password').value;
   const rol = document.getElementById('nu-rol').value;
@@ -212,7 +215,7 @@ async function crearUsuario(){
     const r = await fetch('/api/admin/usuarios', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ usuario, password, rol }),
+      body: JSON.stringify({ nombre, usuario, password, rol }),
     });
     const cuerpo = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(cuerpo.error || 'No se pudo crear el usuario.');
@@ -229,13 +232,15 @@ async function crearUsuario(){
 
 // ── Modal: restablecer contraseña ──────────────────────────────────────
 
-function abrirModalClave(id, nombre){
+function abrirModalClave(id, nombreMostrado){
   usuarioEnEdicion = id;
-  document.getElementById('clave-usuario-nombre').textContent = `Usuario: ${nombre}`;
+  const u = usuarios.find(x => x.id === id);
+  document.getElementById('clave-usuario-nombre').textContent = `Usuario: ${nombreMostrado}`;
+  document.getElementById('cl-nombre').value = (u && u.nombre) || '';
   document.getElementById('cl-password').value = '';
   ocultarErrorModal('cl-error');
   document.getElementById('modal-fondo-clave').classList.add('visible');
-  document.getElementById('cl-password').focus();
+  document.getElementById('cl-nombre').focus();
 }
 
 function cerrarModalClave(){
@@ -244,12 +249,17 @@ function cerrarModalClave(){
 }
 
 async function guardarClave(){
+  const nombre = document.getElementById('cl-nombre').value.trim();
   const password = document.getElementById('cl-password').value;
   ocultarErrorModal('cl-error');
-  if(password.length < 8){
+  if(password && password.length < 8){
     mostrarErrorModal('cl-error', 'La contraseña debe tener al menos 8 caracteres.');
     return;
   }
+
+  const body = { nombre };
+  if(password) body.password = password;
+
   const btn = document.getElementById('cl-guardar');
   btn.disabled = true;
   btn.textContent = 'Guardando…';
@@ -257,12 +267,13 @@ async function guardarClave(){
     const r = await fetch(`/api/admin/usuarios/${usuarioEnEdicion}`, {
       method: 'PATCH',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ password }),
+      body: JSON.stringify(body),
     });
     const cuerpo = await r.json().catch(() => ({}));
-    if(!r.ok) throw new Error(cuerpo.error || 'No se pudo cambiar la contraseña.');
+    if(!r.ok) throw new Error(cuerpo.error || 'No se pudo guardar los cambios.');
     cerrarModalClave();
-    mostrarToast('Contraseña actualizada.');
+    mostrarToast('Usuario actualizado.');
+    await cargarUsuarios();
   }catch(e){
     mostrarErrorModal('cl-error', e.message);
   }finally{

@@ -62,6 +62,8 @@
 <div class="modal-fondo" id="modal-fondo">
   <div class="modal-card" id="modal-nuevo">
     <h3>Nuevo usuario</h3>
+    <label for="nu-nombre">Nombre completo</label>
+    <input id="nu-nombre" type="text" placeholder="p. ej. María Pérez" autocomplete="off">
     <label for="nu-usuario">Usuario o correo</label>
     <input id="nu-usuario" type="text" placeholder="p. ej. juridica2026 o nombre@correo.com" autocomplete="off">
     <label for="nu-password">Contraseña</label>
@@ -79,10 +81,12 @@
 
 <div class="modal-fondo" id="modal-fondo-clave">
   <div class="modal-card" id="modal-clave">
-    <h3>Restablecer contraseña</h3>
+    <h3>Editar usuario</h3>
     <p class="modal-nota" id="clave-usuario-nombre"></p>
-    <label for="cl-password">Nueva contraseña</label>
-    <input id="cl-password" type="text" placeholder="Mínimo 8 caracteres" autocomplete="off">
+    <label for="cl-nombre">Nombre completo</label>
+    <input id="cl-nombre" type="text" placeholder="p. ej. María Pérez" autocomplete="off">
+    <label for="cl-password">Nueva contraseña (opcional)</label>
+    <input id="cl-password" type="text" placeholder="Déjalo en blanco para no cambiarla" autocomplete="off">
     <div class="modal-error" id="cl-error"></div>
     <div class="modal-botones">
       <button class="btn-secundario" id="cl-cancelar">Cancelar</button>
