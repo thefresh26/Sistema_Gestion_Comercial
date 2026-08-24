@@ -15,7 +15,7 @@
     <div>
       <div class="brand-eyebrow">Área Comercial</div>
       <h1 class="brand-title">Estadísticas de Ventas</h1>
-      <p class="brand-sub">Folios y unidades vendidas en SAE y FRV, por año</p>
+      <p class="brand-sub">Folios y unidades vendidas en SAE y FRV, por año y mes</p>
     </div>
     <button class="btn-tabla" id="btn-toggle-tabla">Ver como tabla</button>
   </div>
@@ -32,12 +32,47 @@
         <label for="filtro-anio">Año</label>
         <select id="filtro-anio"><option value="todos">Todos</option></select>
       </div>
+      <div class="filtro-grupo">
+        <label for="filtro-mes">Mes</label>
+        <select id="filtro-mes">
+          <option value="todos">Todos</option>
+          <option value="1">Enero</option>
+          <option value="2">Febrero</option>
+          <option value="3">Marzo</option>
+          <option value="4">Abril</option>
+          <option value="5">Mayo</option>
+          <option value="6">Junio</option>
+          <option value="7">Julio</option>
+          <option value="8">Agosto</option>
+          <option value="9">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+      <div class="filtro-grupo filtro-grupo-vista">
+        <label>Ver por</label>
+        <div class="vista-toggle" id="vista-toggle">
+          <button type="button" class="vista-btn activo" data-vista="anio">Año</button>
+          <button type="button" class="vista-btn" data-vista="mes">Mes</button>
+        </div>
+      </div>
       <div class="filtro-hint">Haz clic en "SAE" o "FRV" en la leyenda de cualquier gráfica para mostrar/ocultar esa serie.</div>
+    </section>
+
+    <section class="chart-card chart-card-donut">
+      <div class="chart-head">
+        <h2>Distribución de lo vendido (SAE vs FRV)</h2>
+      </div>
+      <div class="donut-layout">
+        <div id="donut-chart"></div>
+        <div id="donut-detalle" class="donut-detalle"></div>
+      </div>
     </section>
 
     <section class="chart-card">
       <div class="chart-head">
-        <h2>Folios / unidades vendidas por año</h2>
+        <h2>Folios / unidades vendidas</h2>
         <div class="legend" id="legend-cantidad"></div>
       </div>
       <div class="chart-body" id="chart-cantidad"></div>
@@ -45,7 +80,7 @@
 
     <section class="chart-card">
       <div class="chart-head">
-        <h2>Valor total vendido por año (COP)</h2>
+        <h2>Valor total vendido (COP)</h2>
         <div class="legend" id="legend-valor"></div>
       </div>
       <div class="chart-body" id="chart-valor"></div>
@@ -63,7 +98,7 @@
     <section class="tabla-wrap" id="tabla-wrap" style="display:none;">
       <table id="tabla-datos">
         <thead>
-          <tr><th>Sistema</th><th>Año</th><th>Cantidad</th><th>Valor total</th></tr>
+          <tr><th>Sistema</th><th>Año</th><th>Mes</th><th>Cantidad</th><th>Valor total</th></tr>
         </thead>
         <tbody id="tabla-body"></tbody>
       </table>

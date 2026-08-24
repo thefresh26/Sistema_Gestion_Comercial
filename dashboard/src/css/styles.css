@@ -162,6 +162,40 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
 }
 .filtro-hint{font-size:12px;color:var(--muted);}
 
+.vista-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.vista-btn{
+  font-family:var(--sans);
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  background:var(--off);
+  border:none;
+  padding:6px 14px;
+  cursor:pointer;
+}
+.vista-btn.activo{background:var(--blue);color:#fff;}
+.vista-btn:not(.activo):hover{background:#e8edf6;}
+
+.donut-layout{display:flex;align-items:center;gap:28px;flex-wrap:wrap;}
+.donut-wrap{position:relative;width:140px;height:140px;flex:none;}
+.donut-svg{width:140px;height:140px;}
+.donut-seg{transition:stroke-dasharray .2s;}
+.donut-centro{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.donut-total{font-family:var(--heading);font-size:22px;font-weight:800;color:var(--navy);}
+.donut-total-sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.donut-detalle{display:flex;flex-direction:column;gap:10px;}
+.donut-fila{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);}
+.donut-fila-nombre{font-weight:700;min-width:36px;}
+.donut-fila-valor{color:var(--muted);font-size:13px;}
+
 .chart-card{
   background:var(--white);
   border:1px solid var(--border);

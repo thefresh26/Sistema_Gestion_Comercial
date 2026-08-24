@@ -6,21 +6,21 @@ a dos fuentes:
 
   1. La base de datos "intranet" en Azure (solo lectura), para sacar
      cuántos inmuebles de SAE están en estado "Vendido" y su valor, por
-     año — usando fecha_cambio_estado, que sí es una fecha real.
+     año Y MES — usando fecha_cambio_estado, que sí es una fecha real.
 
   2. El archivo frv/data.json, para sacar cuántos bienes de FRV están en
      etapa "MONETIZADO" y su valor (VALOR AVALÚO — ver nota abajo). Ese
      archivo NO tiene fecha de venta, así que este script lleva su propio
      control de "cuáles ya había visto" en la tabla
      dashboard_frv_seguimiento, para poder ir armando un historial real
-     por año a partir de la fecha en que cada uno se detecta por primera
-     vez como monetizado.
+     por año y mes a partir de la fecha en que cada uno se detecta por
+     primera vez como monetizado.
 
-El resultado final (cantidad y valor por año, por sistema) se guarda en
-la tabla dashboard_ventas_anual de Supabase. La ruta /api/dashboard/resumen
-de app.py SOLO lee esa tabla — nunca consulta la base "intranet"
-directamente, así que un problema de red hacia Azure nunca puede tumbar
-el portal.
+El resultado final (cantidad y valor por año Y MES, por sistema) se guarda
+en la tabla dashboard_ventas_anual de Supabase. La ruta
+/api/dashboard/resumen de app.py SOLO lee esa tabla — nunca consulta la
+base "intranet" directamente, así que un problema de red hacia Azure
+nunca puede tumbar el portal.
 
 Variables de entorno necesarias (configurar en Render → el Cron Job
 también, no solo el Web Service):
@@ -96,20 +96,21 @@ def calcular_sae():
             cur.execute("""
                 SELECT
                     EXTRACT(YEAR FROM fecha_cambio_estado)::int AS anio,
+                    EXTRACT(MONTH FROM fecha_cambio_estado)::int AS mes,
                     COUNT(*) AS cantidad,
                     SUM(COALESCE(precio_base_venta, valor_avaluo_comercial, valor_minimo_venta, 0)) AS valor_total
                 FROM mst_inmuebles
                 WHERE estado_id = %s AND operator_id = %s
-                GROUP BY anio
-                ORDER BY anio;
+                GROUP BY anio, mes
+                ORDER BY anio, mes;
             """, (ESTADO_VENDIDO_ID, OPERATOR_ID_SAE))
             filas = cur.fetchall()
     finally:
         conn.close()
 
     resultado = {}
-    for anio, cantidad, valor_total in filas:
-        resultado[anio] = {"cantidad": cantidad, "valor_total": float(valor_total or 0)}
+    for anio, mes, cantidad, valor_total in filas:
+        resultado[(anio, mes)] = {"cantidad": cantidad, "valor_total": float(valor_total or 0)}
     log(f"SAE: {resultado}")
     return resultado
 
@@ -191,30 +192,35 @@ def calcular_frv():
         log(f"FRV: {len(nuevos)} bienes nuevos detectados como MONETIZADO, se registran con fecha {hoy}.")
         supabase_upsert("dashboard_frv_seguimiento", nuevos, on_conflict="codigo_frv")
 
-    # Releer todo el seguimiento (ya con los nuevos incluidos) y agrupar por año.
+    # Releer todo el seguimiento (ya con los nuevos incluidos) y agrupar por
+    # año Y MES de detección.
     todos = supabase_get("dashboard_frv_seguimiento", "?select=fecha_detectado,valor_contable")
-    por_anio = defaultdict(lambda: {"cantidad": 0, "valor_total": 0.0})
+    por_anio_mes = defaultdict(lambda: {"cantidad": 0, "valor_total": 0.0})
     for fila in todos:
-        anio = int(str(fila["fecha_detectado"])[:4])
-        por_anio[anio]["cantidad"] += 1
-        por_anio[anio]["valor_total"] += float(fila.get("valor_contable") or 0)
+        fecha_texto = str(fila["fecha_detectado"])
+        anio = int(fecha_texto[:4])
+        mes = int(fecha_texto[5:7])
+        clave = (anio, mes)
+        por_anio_mes[clave]["cantidad"] += 1
+        por_anio_mes[clave]["valor_total"] += float(fila.get("valor_contable") or 0)
 
-    log(f"FRV agrupado por año: {dict(por_anio)}")
-    return dict(por_anio)
+    log(f"FRV agrupado por año y mes: {dict(por_anio_mes)}")
+    return dict(por_anio_mes)
 
 
-def guardar_resultado(sistema, por_anio, anio_primera_corrida=None):
+def guardar_resultado(sistema, por_anio_mes, clave_primera_corrida=None):
     filas = []
-    for anio, datos in por_anio.items():
+    for (anio, mes), datos in por_anio_mes.items():
         filas.append({
             "sistema": sistema,
             "anio": anio,
+            "mes": mes,
             "cantidad": datos["cantidad"],
             "valor_total": datos["valor_total"],
-            "es_acumulado_historico": (anio == anio_primera_corrida),
+            "es_acumulado_historico": ((anio, mes) == clave_primera_corrida),
             "actualizado_en": "now()",
         })
-    supabase_upsert("dashboard_ventas_anual", filas, on_conflict="sistema,anio")
+    supabase_upsert("dashboard_ventas_anual", filas, on_conflict="sistema,anio,mes")
 
 
 def main():
@@ -228,11 +234,12 @@ def main():
 
     frv = calcular_frv()
     if frv:
-        # El primer año en el que aparece cualquier registro de seguimiento
-        # es el "bloque histórico inicial" (todo lo que ya estaba
-        # MONETIZADO antes de activar este dashboard, sin fecha real).
-        anio_inicial = min(frv.keys())
-        guardar_resultado("FRV", frv, anio_primera_corrida=anio_inicial)
+        # El primer año-mes en el que aparece cualquier registro de
+        # seguimiento es el "bloque histórico inicial" (todo lo que ya
+        # estaba MONETIZADO antes de activar este dashboard, sin fecha
+        # real de venta).
+        clave_inicial = min(frv.keys())
+        guardar_resultado("FRV", frv, clave_primera_corrida=clave_inicial)
 
     log("Listo.")
 

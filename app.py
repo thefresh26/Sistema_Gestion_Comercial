@@ -394,7 +394,7 @@ def dashboard_static(filename):
 @requires_modulo("dashboard")
 def dashboard_resumen():
     r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/dashboard_ventas_anual?select=sistema,anio,cantidad,valor_total,es_acumulado_historico,actualizado_en&order=anio.asc",
+        f"{SUPABASE_URL}/rest/v1/dashboard_ventas_anual?select=sistema,anio,mes,cantidad,valor_total,es_acumulado_historico,actualizado_en&order=anio.asc,mes.asc",
         headers={
             "apikey": SUPABASE_SERVICE_ROLE_KEY,
             "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
