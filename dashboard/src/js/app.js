@@ -208,7 +208,7 @@ function construirStatTiles(filas){
     <div class="stat-tile ${sistemasOcultos.has('FRV') ? 'oculto' : ''}">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.FRV}"></span>FRV · Vendidos</div>
       <div class="stat-value">${fmtNumero(totales.FRV.cantidad)}</div>
-      <div class="stat-sub">folios / unidades</div>
+      <div class="stat-sub">bienes</div>
     </div>
     <div class="stat-tile ${sistemasOcultos.has('FRV') ? 'oculto' : ''}">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.FRV}"></span>FRV · Valor vendido</div>
@@ -229,7 +229,7 @@ function construirTabla(filasCrudas){
         <td>${f.sistema}</td>
         <td>${f.anio}</td>
         <td>${f.mes ? NOMBRES_MES[f.mes] : '—'}</td>
-        <td>${f.medida === 'total' ? '—' : (f.medida === 'unidad' ? 'Unidades' : 'Folios')}</td>
+        <td>${f.medida === 'total' ? 'Bienes (FRV)' : (f.medida === 'unidad' ? 'Unidades' : 'Folios')}</td>
         <td>${fmtNumero(f.cantidad)}</td>
         <td>${fmtMoneda(f.valor_total)}${f.es_acumulado_historico ? ' (histórico)' : ''}</td>
       </tr>
