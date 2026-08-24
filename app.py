@@ -61,18 +61,23 @@ USER_EMAILS = {
 # para dar o quitar acceso a un módulo completo.
 #
 # Roles y qué ve cada uno (acordado con el negocio):
-#   comercial     -> ve todo (SAE, FRV, Vista_Inmuebles, Dashboard)
-#   admin         -> ve todo (se muestra como "Administrador" en el panel)
-#   juridico      -> solo FRV
-#   sae           -> solo el inventario SAE
+#   comercial       -> ve todo (SAE, FRV, Vista_Inmuebles, Dashboard)
+#   admin           -> ve todo (se muestra como "Administrador" en el panel)
+#   juridico        -> solo FRV (con los campos de avalúo)
+#   sae             -> solo el inventario SAE
+#   comunicaciones  -> solo FRV (sin los campos de avalúo, igual que comercial)
 MODULOS = {
     "sae": {"comercial", "admin", "sae"},
-    "frv": {"comercial", "juridico", "admin"},
+    "frv": {"comercial", "juridico", "admin", "comunicaciones"},
     "vista_inmuebles": {"comercial", "admin"},
     "dashboard": {"comercial", "admin"},
     # Panel de permisos: solo lo abre el rol admin (ver pregunta al usuario).
     "admin": {"admin"},
 }
+
+# Roles que NO deben ver los campos de avalúo de FRV (ver CAMPOS_AVALUO_FRV
+# más abajo), aunque sí tengan acceso al módulo.
+ROLES_SIN_AVALUO_FRV = {"comercial", "comunicaciones"}
 
 # Nombre para mostrar de cada rol en el panel de administración de permisos.
 # El valor interno ("admin") no cambia — así ningún usuario que ya tenga ese
@@ -85,6 +90,7 @@ ROLES_VISIBLES = {
     "juridico": "Jurídico",
     "admin": "Administrador",
     "sae": "SAE",
+    "comunicaciones": "Comunicaciones",
     "sin_acceso": "Sin acceso",
 }
 
@@ -349,7 +355,7 @@ def frv_data():
     # Lista blanca: solo salen los campos que la pantalla realmente usa,
     # nunca la fila completa del data.json.
     campos_permitidos = set(CAMPOS_BASE_FRV)
-    if session.get("role") != "comercial":
+    if session.get("role") not in ROLES_SIN_AVALUO_FRV:
         campos_permitidos |= set(CAMPOS_AVALUO_FRV)
 
     data = [
