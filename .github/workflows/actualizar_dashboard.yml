@@ -1,21 +1,17 @@
 name: Actualizar Dashboard de Ventas
 
-# El "schedule" automático de este workflow quedó DESACTIVADO: la base de
-# datos "intranet" en Azure solo acepta conexiones desde IPs autorizadas, y
-# los servidores de GitHub Actions no están en esa lista (además cambian de
-# IP cada vez que corren) — por más correcta que esté la contraseña, siempre
-# da error de autenticación. La actualización automática real ahora corre
-# como una Tarea Programada de Windows en un computador de la empresa que sí
-# tiene su IP autorizada (ver scripts/tarea_programada_local.ps1.ejemplo).
+# Corre sola, todos los días, sin depender de ningún computador prendido.
+# El error de conexión que daba antes ("password authentication failed") era
+# por un carácter de más en la contraseña guardada en los secrets — ya
+# corregido y probado con éxito (ver Actions → historial de corridas).
 #
-# Este workflow se deja aquí solo para poder lanzarlo A MANO desde la
-# pestaña "Actions" (botón "Run workflow") — por ejemplo, el día que se abra
-# el firewall de Azure para GitHub Actions, o para probar manualmente.
+# También se puede lanzar a mano desde la pestaña "Actions" del repositorio
+# en GitHub (botón "Run workflow"), sin esperar al horario.
 
 on:
+  schedule:
+    - cron: "0 11 * * *"   # todos los días 11:00 UTC = 6:00 a.m. Colombia
   workflow_dispatch: {}     # permite lanzarlo a mano desde GitHub
-  # schedule:
-  #   - cron: "0 11 * * *"   # DESACTIVADO — ver nota arriba (bloqueado por firewall de Azure)
 
 jobs:
   actualizar:
