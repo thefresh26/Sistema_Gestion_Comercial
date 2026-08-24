@@ -59,11 +59,43 @@ USER_EMAILS = {
 # Qué roles pueden ver/usar cada módulo del portal. Ajusta esta tabla si
 # cambian las reglas de negocio; es el único lugar donde hay que tocar algo
 # para dar o quitar acceso a un módulo completo.
+#
+# Roles y qué ve cada uno (acordado con el negocio):
+#   comercial     -> ve todo (SAE, FRV, Vista_Inmuebles, Dashboard)
+#   admin         -> ve todo (se muestra como "Administrador" en el panel)
+#   juridico      -> solo FRV
+#   sae           -> solo el inventario SAE
 MODULOS = {
-    "sae": {"comercial", "admin"},
+    "sae": {"comercial", "admin", "sae"},
     "frv": {"comercial", "juridico", "admin"},
     "vista_inmuebles": {"comercial", "admin"},
     "dashboard": {"comercial", "admin"},
+    # Panel de permisos: solo lo abre el rol admin (ver pregunta al usuario).
+    "admin": {"admin"},
+}
+
+# Nombre para mostrar de cada rol en el panel de administración de permisos.
+# El valor interno ("admin") no cambia — así ningún usuario que ya tenga ese
+# rol en Supabase pierde acceso — solo cambia cómo se ve en pantalla.
+# "sin_acceso" es un rol especial que no aparece en ningún set de MODULOS:
+# el usuario puede seguir iniciando sesión (ve "Inicio") pero no ve ningún
+# módulo — sirve para revocar acceso sin borrar la cuenta.
+ROLES_VISIBLES = {
+    "comercial": "Comercial",
+    "juridico": "Jurídico",
+    "admin": "Administrador",
+    "sae": "SAE",
+    "sin_acceso": "Sin acceso",
+}
+
+# Nombre para mostrar de cada módulo — se usa solo para pintar en el panel
+# de admin la tabla de referencia "qué ve cada rol" (a partir de MODULOS).
+MODULOS_LISTA_LEGIBLE = {
+    "sae": "Inventario SAE",
+    "frv": "Inmuebles FRV",
+    "vista_inmuebles": "Vista Inmuebles",
+    "dashboard": "Estadísticas",
+    "admin": "Administración",
 }
 
 # Campos de FRV visibles para CUALQUIER rol con acceso al módulo (son
@@ -406,6 +438,186 @@ def dashboard_resumen():
 
     registrar_log("dashboard", session.get("email"), "consulta", None, obtener_ip_cliente())
     return jsonify(r.json())
+
+
+# ── MÓDULO ADMIN (panel de permisos) ─────────────────────────────────────
+# Da de alta usuarios y cambia el rol / estado de los que ya existen,
+# hablando con la Admin API de Supabase Auth (nunca se guardan contraseñas
+# aquí). Solo lo puede abrir el rol "admin" (ver MODULOS arriba).
+
+@app.route("/admin/")
+@requires_modulo("admin")
+def admin_index():
+    return send_from_directory(os.path.join(BASE_DIR, "admin"), "index.html")
+
+
+@app.route("/admin/<path:filename>")
+@requires_modulo("admin")
+def admin_static(filename):
+    return send_from_directory(os.path.join(BASE_DIR, "admin"), filename)
+
+
+def _supabase_admin_headers():
+    return {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+
+@app.route("/api/admin/usuarios")
+@requires_modulo("admin")
+def admin_listar_usuarios():
+    usuarios = []
+    pagina = 1
+    while True:
+        r = requests.get(
+            f"{SUPABASE_URL}/auth/v1/admin/users",
+            headers=_supabase_admin_headers(),
+            params={"page": pagina, "per_page": 200},
+            timeout=15,
+        )
+        if r.status_code != 200:
+            return jsonify({"error": "Error al consultar usuarios"}), 502
+        pagina_datos = r.json().get("users", [])
+        if not pagina_datos:
+            break
+        usuarios.extend(pagina_datos)
+        if len(pagina_datos) < 200:
+            break
+        pagina += 1
+
+    emails_a_usuario = {v: k for k, v in USER_EMAILS.items()}
+
+    salida = []
+    for u in usuarios:
+        email = u.get("email", "")
+        rol = (u.get("user_metadata") or {}).get("role", "comercial")
+        salida.append({
+            "id": u.get("id"),
+            "email": email,
+            "usuario": emails_a_usuario.get(email, email),
+            "rol": rol,
+            "deshabilitado": bool(u.get("banned_until")),
+            "creado_en": u.get("created_at"),
+            "ultimo_ingreso": u.get("last_sign_in_at"),
+            "es_yo": email == session.get("email"),
+        })
+    salida.sort(key=lambda x: x["usuario"].lower())
+    matriz = {modulo: sorted(roles) for modulo, roles in MODULOS.items()}
+    return jsonify({
+        "usuarios": salida,
+        "roles": ROLES_VISIBLES,
+        "modulos": MODULOS_LISTA_LEGIBLE,
+        "matriz": matriz,
+    })
+
+
+@app.route("/api/admin/usuarios", methods=["POST"])
+@requires_modulo("admin")
+def admin_crear_usuario():
+    body = request.get_json(silent=True) or {}
+    usuario = (body.get("usuario") or "").strip()
+    password = body.get("password") or ""
+    rol = body.get("rol") or "comercial"
+
+    if not usuario or not password:
+        return jsonify({"error": "Faltan usuario o contraseña"}), 400
+    if rol not in ROLES_VISIBLES:
+        return jsonify({"error": "Rol inválido"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
+
+    # Si el usuario ya escribió un correo completo se usa tal cual; si no,
+    # se arma con el mismo patrón que USER_EMAILS.
+    email = usuario if "@" in usuario else f"{usuario}@sae-inmuebles.app"
+
+    r = requests.post(
+        f"{SUPABASE_URL}/auth/v1/admin/users",
+        headers=_supabase_admin_headers(),
+        json={
+            "email": email,
+            "password": password,
+            "email_confirm": True,
+            "user_metadata": {"role": rol},
+        },
+        timeout=15,
+    )
+    if r.status_code not in (200, 201):
+        cuerpo = r.json() if r.content else {}
+        detalle = cuerpo.get("msg") or cuerpo.get("error_description") or "Error al crear el usuario"
+        return jsonify({"error": detalle}), 400
+
+    registrar_log("admin", session.get("email"), "crear_usuario", f"{email} -> rol {rol}", obtener_ip_cliente())
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/usuarios/<user_id>", methods=["PATCH"])
+@requires_modulo("admin")
+def admin_actualizar_usuario(user_id):
+    body = request.get_json(silent=True) or {}
+
+    # Se trae el usuario actual primero para no pisarle otros campos que ya
+    # tenga en user_metadata al actualizar el rol.
+    r = requests.get(
+        f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
+        headers=_supabase_admin_headers(),
+        timeout=15,
+    )
+    if r.status_code != 200:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    actual = r.json()
+    email_actual = actual.get("email")
+    es_yo = email_actual == session.get("email")
+
+    payload = {}
+    detalle_log = []
+
+    if "rol" in body:
+        rol = body["rol"]
+        if rol not in ROLES_VISIBLES:
+            return jsonify({"error": "Rol inválido"}), 400
+        if es_yo and rol != "admin":
+            return jsonify({"error": "No puedes quitarte tu propio rol de administrador"}), 400
+        metadata_actual = actual.get("user_metadata") or {}
+        metadata_actual["role"] = rol
+        payload["user_metadata"] = metadata_actual
+        detalle_log.append(f"rol -> {rol}")
+
+    if "deshabilitado" in body:
+        if es_yo and body["deshabilitado"]:
+            return jsonify({"error": "No puedes deshabilitar tu propia cuenta"}), 400
+        # ~100 años: Supabase no tiene un "ban permanente" real, así que se
+        # usa una duración muy larga en vez de "none" (que significa "sin
+        # baneo") para deshabilitar el ingreso indefinidamente.
+        payload["ban_duration"] = "876000h" if body["deshabilitado"] else "none"
+        detalle_log.append("cuenta deshabilitada" if body["deshabilitado"] else "cuenta habilitada")
+
+    if body.get("password"):
+        if len(body["password"]) < 8:
+            return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
+        payload["password"] = body["password"]
+        detalle_log.append("contraseña restablecida")
+
+    if not payload:
+        return jsonify({"error": "Nada que actualizar"}), 400
+
+    r2 = requests.put(
+        f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
+        headers=_supabase_admin_headers(),
+        json=payload,
+        timeout=15,
+    )
+    if r2.status_code != 200:
+        cuerpo = r2.json() if r2.content else {}
+        detalle = cuerpo.get("msg") or cuerpo.get("error_description") or "Error al actualizar el usuario"
+        return jsonify({"error": detalle}), 400
+
+    registrar_log(
+        "admin", session.get("email"), "editar_usuario",
+        f"{email_actual}: {', '.join(detalle_log)}", obtener_ip_cliente(),
+    )
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

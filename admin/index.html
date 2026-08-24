@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Permisos</title>
+<link rel="icon" type="image/png" href="/portal/public/logos/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="brand-eyebrow">Administración</div>
+      <h1 class="brand-title">Permisos de usuarios</h1>
+      <p class="brand-sub">Crea usuarios y decide qué módulos puede ver cada uno, según su rol</p>
+    </div>
+    <button class="btn-nuevo" id="btn-nuevo-usuario">+ Nuevo usuario</button>
+  </div>
+</header>
+
+<main>
+  <div id="estado-carga">Cargando usuarios…</div>
+  <div id="estado-error" style="display:none;"></div>
+
+  <div id="contenido" style="display:none;">
+
+    <section class="chart-card" id="tarjeta-referencia">
+      <div class="chart-head">
+        <h2>Qué ve cada rol</h2>
+      </div>
+      <div class="ref-grid" id="ref-grid"></div>
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-head">
+        <h2>Usuarios</h2>
+        <span class="conteo" id="conteo-usuarios"></span>
+      </div>
+      <div class="tabla-wrap">
+        <table id="tabla-usuarios">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Último ingreso</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-usuarios-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ═══════════ MODAL: nuevo usuario / editar contraseña ═══════════ -->
+<div class="modal-fondo" id="modal-fondo">
+  <div class="modal-card" id="modal-nuevo">
+    <h3>Nuevo usuario</h3>
+    <label for="nu-usuario">Usuario o correo</label>
+    <input id="nu-usuario" type="text" placeholder="p. ej. juridica2026 o nombre@correo.com" autocomplete="off">
+    <label for="nu-password">Contraseña</label>
+    <input id="nu-password" type="text" placeholder="Mínimo 8 caracteres" autocomplete="off">
+    <label for="nu-rol">Rol</label>
+    <select id="nu-rol"></select>
+    <p class="modal-nota" id="nu-nota"></p>
+    <div class="modal-error" id="nu-error"></div>
+    <div class="modal-botones">
+      <button class="btn-secundario" id="nu-cancelar">Cancelar</button>
+      <button class="btn-primario" id="nu-crear">Crear usuario</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fondo" id="modal-fondo-clave">
+  <div class="modal-card" id="modal-clave">
+    <h3>Restablecer contraseña</h3>
+    <p class="modal-nota" id="clave-usuario-nombre"></p>
+    <label for="cl-password">Nueva contraseña</label>
+    <input id="cl-password" type="text" placeholder="Mínimo 8 caracteres" autocomplete="off">
+    <div class="modal-error" id="cl-error"></div>
+    <div class="modal-botones">
+      <button class="btn-secundario" id="cl-cancelar">Cancelar</button>
+      <button class="btn-primario" id="cl-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="src/js/app.js"></script>
+</body>
+</html>

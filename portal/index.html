@@ -67,6 +67,10 @@
     <div class="tab-panel" data-tab="dashboard">
       <iframe id="frame-dashboard" title="Estadísticas"></iframe>
     </div>
+
+    <div class="tab-panel" data-tab="admin">
+      <iframe id="frame-admin" title="Permisos"></iframe>
+    </div>
   </div>
 </div>
 
@@ -77,6 +81,7 @@ const TAB_LABELS = {
   frv: 'Inmuebles FRV',
   vista_inmuebles: 'Inmuebles',
   dashboard: 'Estadísticas',
+  admin: 'Permisos',
 };
 
 const TAB_DESCRIPCIONES = {
@@ -84,6 +89,7 @@ const TAB_DESCRIPCIONES = {
   frv: 'Consulta de bienes del Fondo de Reparación a las Víctimas.',
   vista_inmuebles: 'Consulta de inventario con semáforo de viabilidad, por folio (FMI).',
   dashboard: 'Folios y unidades vendidas en SAE y FRV, por año.',
+  admin: 'Crear usuarios y asignar qué módulos puede ver cada uno.',
 };
 
 let sesionActual = null;
@@ -163,6 +169,10 @@ function activarTab(nombre){
     const f = document.getElementById('frame-dashboard');
     if(!f.src) f.src = '/dashboard/';
   }
+  if(nombre === 'admin'){
+    const f = document.getElementById('frame-admin');
+    if(!f.src) f.src = '/admin/';
+  }
 }
 
 async function doLogin(){
@@ -211,7 +221,7 @@ async function cerrarSesion(){
 }
 
 function limpiarFrames(){
-  ['frame-sae', 'frame-frv', 'frame-vista_inmuebles', 'frame-dashboard'].forEach(id=>{
+  ['frame-sae', 'frame-frv', 'frame-vista_inmuebles', 'frame-dashboard', 'frame-admin'].forEach(id=>{
     const f = document.getElementById(id);
     if(f) f.src = '';
   });
