@@ -48,6 +48,18 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
+# Directorio de personal exportado de Microsoft 365 (Centro de administración
+# → Usuarios → Exportar), correo -> nombre completo. Se usa SOLO para
+# sugerir/rellenar el "Nombre completo" en el panel de Permisos — nunca para
+# autenticar ni para nada fuera de esa pantalla. Si el archivo no existe el
+# sistema sigue funcionando igual, simplemente sin sugerencias automáticas.
+DIRECTORIO_M365_PATH = os.path.join(BASE_DIR, "data", "directorio_m365.json")
+try:
+    with open(DIRECTORIO_M365_PATH, "r", encoding="utf-8") as _f:
+        DIRECTORIO_M365 = json.load(_f)
+except (FileNotFoundError, json.JSONDecodeError):
+    DIRECTORIO_M365 = {}
+
 # Mapeo usuario corto -> correo real en Supabase Auth. Mismo patrón que los
 # tres proyectos originales, reunido en un solo lugar.
 USER_EMAILS = {
@@ -509,11 +521,15 @@ def admin_listar_usuarios():
         email = u.get("email", "")
         metadata = u.get("user_metadata") or {}
         rol = metadata.get("role", "comercial")
+        nombre_guardado = metadata.get("nombre", "")
         salida.append({
             "id": u.get("id"),
             "email": email,
             "usuario": emails_a_usuario.get(email, email),
-            "nombre": metadata.get("nombre", ""),
+            "nombre": nombre_guardado,
+            # Sugerencia sacada del directorio de Microsoft 365 — solo se
+            # llena cuando el usuario todavía no tiene un nombre guardado.
+            "sugerencia_nombre": ("" if nombre_guardado else DIRECTORIO_M365.get(email.lower(), "")),
             "rol": rol,
             "deshabilitado": bool(u.get("banned_until")),
             "creado_en": u.get("created_at"),
@@ -549,6 +565,11 @@ def admin_crear_usuario():
     # Si el usuario ya escribió un correo completo se usa tal cual; si no,
     # se arma con el mismo patrón que USER_EMAILS.
     email = usuario if "@" in usuario else f"{usuario}@sae-inmuebles.app"
+
+    # Si no escribieron un nombre a mano, se busca en el directorio de
+    # Microsoft 365 por si ese correo ya aparece ahí.
+    if not nombre:
+        nombre = DIRECTORIO_M365.get(email.lower(), "")
 
     r = requests.post(
         f"{SUPABASE_URL}/auth/v1/admin/users",
@@ -645,6 +666,72 @@ def admin_actualizar_usuario(user_id):
         f"{email_actual}: {', '.join(detalle_log)}", obtener_ip_cliente(),
     )
     return jsonify({"ok": True})
+
+
+@app.route("/api/admin/directorio")
+@requires_modulo("admin")
+def admin_directorio():
+    # Correo -> nombre completo, sacado del export de Microsoft 365. El
+    # panel lo usa para autocompletar el nombre al escribir un correo nuevo.
+    return jsonify(DIRECTORIO_M365)
+
+
+@app.route("/api/admin/usuarios/sincronizar-nombres", methods=["POST"])
+@requires_modulo("admin")
+def admin_sincronizar_nombres():
+    """Copia el nombre desde el directorio de Microsoft 365 a todo usuario
+    del portal que todavía no tenga un "Nombre completo" guardado y cuyo
+    correo aparezca en ese directorio. Nunca pisa un nombre que ya exista."""
+    if not DIRECTORIO_M365:
+        return jsonify({"error": "No hay un directorio de Microsoft 365 cargado en el servidor."}), 400
+
+    usuarios = []
+    pagina = 1
+    while True:
+        r = requests.get(
+            f"{SUPABASE_URL}/auth/v1/admin/users",
+            headers=_supabase_admin_headers(),
+            params={"page": pagina, "per_page": 200},
+            timeout=15,
+        )
+        if r.status_code != 200:
+            return jsonify({"error": "Error al consultar usuarios"}), 502
+        pagina_datos = r.json().get("users", [])
+        if not pagina_datos:
+            break
+        usuarios.extend(pagina_datos)
+        if len(pagina_datos) < 200:
+            break
+        pagina += 1
+
+    actualizados = []
+    for u in usuarios:
+        metadata = u.get("user_metadata") or {}
+        if metadata.get("nombre"):
+            continue  # ya tiene nombre — nunca se sobreescribe
+        email = (u.get("email") or "").lower()
+        nombre_directorio = DIRECTORIO_M365.get(email)
+        if not nombre_directorio:
+            continue
+
+        metadata["nombre"] = nombre_directorio
+        r2 = requests.put(
+            f"{SUPABASE_URL}/auth/v1/admin/users/{u['id']}",
+            headers=_supabase_admin_headers(),
+            json={"user_metadata": metadata},
+            timeout=15,
+        )
+        if r2.status_code == 200:
+            actualizados.append({"email": email, "nombre": nombre_directorio})
+
+    if actualizados:
+        registrar_log(
+            "admin", session.get("email"), "sincronizar_nombres_m365",
+            f"{len(actualizados)} usuarios: " + "; ".join(f"{a['email']} -> {a['nombre']}" for a in actualizados),
+            obtener_ip_cliente(),
+        )
+
+    return jsonify({"ok": True, "actualizados": actualizados})
 
 
 if __name__ == "__main__":

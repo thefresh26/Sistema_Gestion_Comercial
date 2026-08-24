@@ -2,6 +2,7 @@ let usuarios = [];
 let roles = {};
 let modulosLegibles = {};
 let matriz = {};
+let directorioM365 = {}; // correo (minúsculas) -> nombre, desde Microsoft 365
 let usuarioEnEdicion = null; // para el modal de restablecer contraseña
 
 function mostrarToast(mensaje, esError){
@@ -42,6 +43,8 @@ async function cargarUsuarios(){
 
     document.getElementById('estado-carga').style.display = 'none';
     document.getElementById('contenido').style.display = 'block';
+
+    cargarDirectorioM365();
   }catch(e){
     document.getElementById('estado-carga').style.display = 'none';
     const err = document.getElementById('estado-error');
@@ -79,12 +82,14 @@ function construirTablaUsuarios(){
   body.innerHTML = usuarios.map(u => {
     const selectId = `rol-${u.id}`;
     const nombreMostrado = u.nombre || u.usuario;
+    const sugerencia = !u.nombre && u.sugerencia_nombre ? u.sugerencia_nombre : '';
     return `
       <tr class="${u.deshabilitado ? 'fila-deshabilitada' : ''}">
         <td>
           <div class="usuario-celda">
             <span class="usuario-nombre">${nombreMostrado}${u.es_yo ? '<span class="usuario-tu">Tú</span>' : ''}</span>
             <span class="usuario-email">${u.usuario}${u.usuario !== u.email ? ' · ' + u.email : ''}</span>
+            ${sugerencia ? `<span class="sugerencia-nombre" data-accion="usar-sugerencia" data-id="${u.id}" data-sugerencia="${sugerencia}">¿Es "${sugerencia}"? (Microsoft 365) — clic para usar</span>` : ''}
           </div>
         </td>
         <td>
@@ -123,6 +128,57 @@ function construirTablaUsuarios(){
       if(accion === 'habilitar') cambiarEstado(btn.dataset.id, false);
     });
   });
+  body.querySelectorAll('.sugerencia-nombre').forEach(el => {
+    el.addEventListener('click', () => usarSugerenciaNombre(el.dataset.id, el.dataset.sugerencia));
+  });
+}
+
+async function usarSugerenciaNombre(id, nombre){
+  try{
+    const r = await fetch(`/api/admin/usuarios/${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ nombre }),
+    });
+    const cuerpo = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(cuerpo.error || 'No se pudo guardar el nombre.');
+    mostrarToast('Nombre actualizado.');
+    await cargarUsuarios();
+  }catch(e){
+    mostrarToast(e.message, true);
+  }
+}
+
+// ── Directorio de Microsoft 365 (autocompletar / sincronizar nombres) ───
+
+async function cargarDirectorioM365(){
+  try{
+    const r = await fetch('/api/admin/directorio');
+    if(!r.ok) return; // no es crítico: el panel sigue funcionando sin esto
+    directorioM365 = await r.json();
+  }catch(e){
+    directorioM365 = {};
+  }
+}
+
+async function sincronizarNombresM365(){
+  const btn = document.getElementById('btn-sincronizar-nombres');
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Copiando…';
+  try{
+    const r = await fetch('/api/admin/usuarios/sincronizar-nombres', { method: 'POST' });
+    const cuerpo = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(cuerpo.error || 'No se pudo sincronizar con Microsoft 365.');
+    const n = (cuerpo.actualizados || []).length;
+    mostrarToast(n > 0 ? `${n} nombre${n === 1 ? '' : 's'} copiado${n === 1 ? '' : 's'} desde Microsoft 365.` : 'No había nombres nuevos para copiar.');
+    await cargarUsuarios();
+  }catch(e){
+    mostrarToast(e.message, true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
 }
 
 async function cambiarRol(id, rol){
@@ -285,9 +341,21 @@ async function guardarClave(){
 // ── Eventos ─────────────────────────────────────────────────────────────
 
 document.getElementById('btn-nuevo-usuario').addEventListener('click', abrirModalNuevo);
+document.getElementById('btn-sincronizar-nombres').addEventListener('click', sincronizarNombresM365);
 document.getElementById('nu-cancelar').addEventListener('click', cerrarModalNuevo);
 document.getElementById('nu-crear').addEventListener('click', crearUsuario);
 document.getElementById('modal-fondo').addEventListener('click', (ev) => { if(ev.target.id === 'modal-fondo') cerrarModalNuevo(); });
+
+// Autocompletar el nombre al escribir un correo que ya está en el
+// directorio de Microsoft 365 — solo si el admin no ha escrito ya un
+// nombre a mano, para no pisarle lo que esté tecleando.
+document.getElementById('nu-usuario').addEventListener('input', (ev) => {
+  const correo = ev.target.value.trim().toLowerCase();
+  const nombreActual = document.getElementById('nu-nombre').value.trim();
+  if(!nombreActual && correo.includes('@') && directorioM365[correo]){
+    document.getElementById('nu-nombre').value = directorioM365[correo];
+  }
+});
 
 document.getElementById('cl-cancelar').addEventListener('click', cerrarModalClave);
 document.getElementById('cl-guardar').addEventListener('click', guardarClave);

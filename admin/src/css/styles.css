@@ -37,6 +37,8 @@ header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;he
 .brand-title{font-family:var(--heading);font-size:30px;font-weight:800;margin:0;letter-spacing:-0.01em;}
 .brand-sub{margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.72);}
 
+.header-botones{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
 .btn-nuevo{
   background:var(--yellow);
   border:none;
@@ -49,6 +51,30 @@ header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;he
   cursor:pointer;
 }
 .btn-nuevo:hover{background:var(--yellow2,#ffc233);}
+
+.btn-secundario-header{
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.3);
+  color:#fff;
+  border-radius:8px;
+  padding:10px 16px;
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:13px;
+  cursor:pointer;
+}
+.btn-secundario-header:hover{background:rgba(255,255,255,.18);}
+.btn-secundario-header:disabled{opacity:.6;cursor:not-allowed;}
+
+.sugerencia-nombre{
+  display:block;
+  font-size:11px;
+  color:var(--blue);
+  font-weight:600;
+  margin-top:2px;
+  cursor:pointer;
+}
+.sugerencia-nombre:hover{text-decoration:underline;}
 
 main{max-width:1100px;margin:0 auto;padding:28px;}
 
