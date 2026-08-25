@@ -111,7 +111,7 @@ ROLES_VISIBLES = {
 # Nombre para mostrar de cada módulo — se usa solo para pintar en el panel
 # de admin la tabla de referencia "qué ve cada rol" (a partir de MODULOS).
 MODULOS_LISTA_LEGIBLE = {
-    "sae": "Inventario SAE",
+    "sae": "Expresiones SAE",
     "frv": "Inmuebles FRV",
     "vista_inmuebles": "Vista Inmuebles",
     "dashboard": "Estadísticas",
