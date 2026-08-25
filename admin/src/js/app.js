@@ -21,7 +21,8 @@ function fmtFecha(iso){
   return d.toLocaleString('es-CO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
-async function cargarUsuarios(){
+async function cargarUsuarios(sincronizarAutomatico){
+  if(sincronizarAutomatico === undefined) sincronizarAutomatico = true;
   document.getElementById('estado-carga').style.display = 'block';
   document.getElementById('estado-error').style.display = 'none';
   document.getElementById('contenido').style.display = 'none';
@@ -44,7 +45,19 @@ async function cargarUsuarios(){
     document.getElementById('estado-carga').style.display = 'none';
     document.getElementById('contenido').style.display = 'block';
 
-    cargarDirectorioM365();
+    await cargarDirectorioM365();
+
+    // Si algún usuario todavía no tiene nombre pero ya hay una coincidencia
+    // en el directorio de Microsoft 365, se copia sola — sin que nadie
+    // tenga que hacer clic en nada. Solo se intenta una vez por carga para
+    // no quedar en un ciclo.
+    if(sincronizarAutomatico){
+      const hayPendientes = usuarios.some(u => !u.nombre && u.sugerencia_nombre);
+      if(hayPendientes){
+        await sincronizarNombresM365({ silencioso: true });
+        await cargarUsuarios(false);
+      }
+    }
   }catch(e){
     document.getElementById('estado-carga').style.display = 'none';
     const err = document.getElementById('estado-error');
@@ -81,15 +94,16 @@ function construirTablaUsuarios(){
   const body = document.getElementById('tabla-usuarios-body');
   body.innerHTML = usuarios.map(u => {
     const selectId = `rol-${u.id}`;
-    const nombreMostrado = u.nombre || u.usuario;
-    const sugerencia = !u.nombre && u.sugerencia_nombre ? u.sugerencia_nombre : '';
+    // Si todavía no tiene nombre guardado pero ya hay coincidencia en el
+    // directorio de Microsoft 365, se muestra de una vez: el nombre real
+    // ya se está guardando solo en segundo plano (ver cargarUsuarios).
+    const nombreMostrado = u.nombre || u.sugerencia_nombre || u.usuario;
     return `
       <tr class="${u.deshabilitado ? 'fila-deshabilitada' : ''}">
         <td>
           <div class="usuario-celda">
             <span class="usuario-nombre">${nombreMostrado}${u.es_yo ? '<span class="usuario-tu">Tú</span>' : ''}</span>
             <span class="usuario-email">${u.usuario}${u.usuario !== u.email ? ' · ' + u.email : ''}</span>
-            ${sugerencia ? `<span class="sugerencia-nombre" data-accion="usar-sugerencia" data-id="${u.id}" data-sugerencia="${sugerencia}">¿Es "${sugerencia}"? (Microsoft 365) — clic para usar</span>` : ''}
           </div>
         </td>
         <td>
@@ -128,25 +142,6 @@ function construirTablaUsuarios(){
       if(accion === 'habilitar') cambiarEstado(btn.dataset.id, false);
     });
   });
-  body.querySelectorAll('.sugerencia-nombre').forEach(el => {
-    el.addEventListener('click', () => usarSugerenciaNombre(el.dataset.id, el.dataset.sugerencia));
-  });
-}
-
-async function usarSugerenciaNombre(id, nombre){
-  try{
-    const r = await fetch(`/api/admin/usuarios/${id}`, {
-      method: 'PATCH',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ nombre }),
-    });
-    const cuerpo = await r.json().catch(() => ({}));
-    if(!r.ok) throw new Error(cuerpo.error || 'No se pudo guardar el nombre.');
-    mostrarToast('Nombre actualizado.');
-    await cargarUsuarios();
-  }catch(e){
-    mostrarToast(e.message, true);
-  }
 }
 
 // ── Directorio de Microsoft 365 (autocompletar / sincronizar nombres) ───
@@ -161,23 +156,34 @@ async function cargarDirectorioM365(){
   }
 }
 
-async function sincronizarNombresM365(){
+async function sincronizarNombresM365(opts){
+  opts = opts || {};
+  const silencioso = !!opts.silencioso;
   const btn = document.getElementById('btn-sincronizar-nombres');
-  btn.disabled = true;
   const textoOriginal = btn.textContent;
-  btn.textContent = 'Copiando…';
+  if(!silencioso){
+    btn.disabled = true;
+    btn.textContent = 'Copiando…';
+  }
   try{
     const r = await fetch('/api/admin/usuarios/sincronizar-nombres', { method: 'POST' });
     const cuerpo = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(cuerpo.error || 'No se pudo sincronizar con Microsoft 365.');
     const n = (cuerpo.actualizados || []).length;
-    mostrarToast(n > 0 ? `${n} nombre${n === 1 ? '' : 's'} copiado${n === 1 ? '' : 's'} desde Microsoft 365.` : 'No había nombres nuevos para copiar.');
-    await cargarUsuarios();
+    if(!silencioso){
+      mostrarToast(n > 0 ? `${n} nombre${n === 1 ? '' : 's'} copiado${n === 1 ? '' : 's'} desde Microsoft 365.` : 'No había nombres nuevos para copiar.');
+      await cargarUsuarios(false);
+    }else if(n > 0){
+      // Se hizo solo, al abrir el panel — no hacía falta que nadie le diera clic.
+      mostrarToast(`${n} nombre${n === 1 ? '' : 's'} completado${n === 1 ? '' : 's'} automáticamente desde Microsoft 365.`);
+    }
   }catch(e){
-    mostrarToast(e.message, true);
+    if(!silencioso) mostrarToast(e.message, true);
   }finally{
-    btn.disabled = false;
-    btn.textContent = textoOriginal;
+    if(!silencioso){
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
   }
 }
 
