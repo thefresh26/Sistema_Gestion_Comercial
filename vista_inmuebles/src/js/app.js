@@ -98,12 +98,21 @@ async function doLogin(){
   }
 }
 
-document.getElementById('qi').addEventListener('keydown', e=>{ if(e.key==='Enter') buscar(); });
+document.getElementById('qi').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); buscar(); } });
 
 function nul(v){return v===null||v===undefined||v==='';}
 function fmt(v){if(nul(v))return '<span class="null">—</span>';return String(v);}
 function fmtM(v){if(nul(v))return '<span class="null">—</span>';const x=parseFloat(v);if(isNaN(x)||x===0)return '<span class="null">—</span>';return '$ '+x.toLocaleString('es-CO',{maximumFractionDigits:0});}
 function fmtA(v){if(nul(v))return '<span class="null">—</span>';const x=parseFloat(v);if(isNaN(x))return '<span class="null">—</span>';return x.toLocaleString('es-CO',{maximumFractionDigits:2})+' m²';}
+function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Igual que en SAE: separa por coma "," o diagonal "/", quita espacios y
+// duplicados, para poder consultar varios FMI de una sola vez.
+function parseFmis(q){
+  return [...new Set(
+    q.split(/[,/]+/).map(s=>s.trim()).filter(s=>s.length>0)
+  )];
+}
 
 function icon(path){return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">${path}</svg>`;}
 
@@ -211,43 +220,22 @@ function stitleHtml(iconPath,label){
   return`<div class="stitle"><div class="stitle-icon">${icon(iconPath)}</div>${label}</div>`;
 }
 
-async function buscar(){
-  const q=document.getElementById('qi').value.trim();
-  const sb=document.getElementById('sb');
-  const res=document.getElementById('result');
-  if(!q)return;
-  sb.style.display='block';sb.className='loading';
-  sb.textContent='⏳ Consultando base de datos...';
-  res.style.display='none';
-  try{
-    const resp = await fetch(`/api/vista_inmuebles/buscar?fmi=${encodeURIComponent(q)}`);
-    if(resp.status===401){ location.reload(); return; }
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const r = await resp.json();
+function renderPropiedadHtml(r){
+  const vExists = !!r.viabilidad_existe;
 
-    if(!r){
-      sb.style.display='block';sb.className='empty';
-      sb.textContent=`⚠ No se encontró ningún inmueble con FMI "${q}". Verifica el número e intenta de nuevo.`;return;
-    }
+  const mapLink=r.georeferenciado
+    ?`<a class="map-link" href="${r.georeferenciado.replace('www.google.com/maps','earth.google.com/web')}" target="_blank">${icon('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>')} Ver en Google Earth</a>`
+    :'<span class="null">Sin georreferenciación</span>';
 
-    const vExists = !!r.viabilidad_existe;
+  const dispBadge=String(r.disponibilidad||'').toUpperCase()==='DISPONIBLE'
+    ?'<span class="disp d-ok">✓ DISPONIBLE</span>'
+    :'<span class="disp d-no">✕ NO DISPONIBLE</span>';
 
-    sb.style.display='none';
-    res.style.display='block';
-
-    const mapLink=r.georeferenciado
-      ?`<a class="map-link" href="${r.georeferenciado.replace('www.google.com/maps','earth.google.com/web')}" target="_blank">${icon('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>')} Ver en Google Earth</a>`
-      :'<span class="null">Sin georreferenciación</span>';
-
-    const dispBadge=String(r.disponibilidad||'').toUpperCase()==='DISPONIBLE'
-      ?'<span class="disp d-ok">✓ DISPONIBLE</span>'
-      :'<span class="disp d-no">✕ NO DISPONIBLE</span>';
-
-    res.innerHTML=`
+  return `
     <div class="top-card">
       <div class="tc-left">
         <div class="tc-label">Folio Matrícula Inmobiliaria</div>
-        <div class="fmi-num">${r.fmi}</div>
+        <div class="fmi-num">${esc(r.fmi)}</div>
         <div class="tc-sub">${fmt(r.clasificacion_activo)} &nbsp;·&nbsp; ${fmt(r.subtipo_activo)} &nbsp;·&nbsp; ${fmt(r.municipio)}, ${fmt(r.departamento)}</div>
       </div>
       <div class="tc-right">
@@ -308,7 +296,72 @@ async function buscar(){
         <div class="f"><label>Estado de Publicación</label><div class="v">${fmt(r.estado_publicacion)}</div></div>
       </div>
     </div>
-    `;
+  `;
+}
+
+function renderNoEncontradoHtml(fmi){
+  return `
+    <div class="top-card">
+      <div class="tc-left">
+        <div class="tc-label">Folio Matrícula Inmobiliaria</div>
+        <div class="fmi-num">${esc(fmi)}</div>
+        <div class="tc-sub"><span class="null">⚠ No se encontró ningún inmueble con este FMI</span></div>
+      </div>
+    </div>
+  `;
+}
+
+async function buscar(){
+  const raw=document.getElementById('qi').value.trim();
+  const sb=document.getElementById('sb');
+  const res=document.getElementById('result');
+  if(!raw)return;
+
+  const fmis = parseFmis(raw);
+  if(fmis.length===0) return;
+
+  sb.style.display='block';sb.className='loading';
+  sb.textContent = `⏳ Consultando ${fmis.length} FMI${fmis.length>1?'s':''}...`;
+  res.style.display='none';
+  try{
+    const resp = await fetch(`/api/vista_inmuebles/buscar?fmi=${encodeURIComponent(fmis.join(','))}`);
+    if(resp.status===401){ location.reload(); return; }
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data = await resp.json();
+
+    const encontrados = new Map((data||[]).map(r=>[String(r.fmi).toUpperCase(), r]));
+    const noEncontrados = fmis.filter(f=>!encontrados.has(f.toUpperCase()));
+
+    if(encontrados.size===0){
+      sb.style.display='block';sb.className='empty';
+      sb.textContent = fmis.length===1
+        ? `⚠ No se encontró ningún inmueble con FMI "${fmis[0]}". Verifica el número e intenta de nuevo.`
+        : `⚠ No se encontró ningún inmueble con los FMI consultados. Verifica los números e intenta de nuevo.`;
+      return;
+    }
+
+    sb.style.display='none';
+    res.style.display='block';
+
+    // Con un solo FMI se ve exactamente igual que antes: la ficha completa
+    // directo. Con varios, se apila una ficha completa por cada uno (en el
+    // mismo orden en que se escribieron), con un resumen arriba.
+    const resumenHtml = fmis.length>1 ? `
+      <div class="top-card" style="margin-bottom:16px;">
+        <div class="tc-left">
+          <div class="tc-label">Resultado de la consulta</div>
+          <div class="fmi-num" style="font-size:16px">${fmis.length} FMI consultados</div>
+          <div class="tc-sub">${encontrados.size} encontrado${encontrados.size!==1?'s':''}${noEncontrados.length?` &nbsp;·&nbsp; ${noEncontrados.length} sin resultado`:''}</div>
+        </div>
+      </div>
+    ` : '';
+
+    const fichasHtml = fmis.map(f=>{
+      const r = encontrados.get(f.toUpperCase());
+      return r ? renderPropiedadHtml(r) : renderNoEncontradoHtml(f);
+    }).join('<div style="height:24px"></div>');
+
+    res.innerHTML = resumenHtml + fichasHtml;
   }catch(e){
     sb.style.display='block';sb.className='error';
     sb.textContent='⚠ Error al consultar la base de datos. Verifica tu conexión e intenta de nuevo.';

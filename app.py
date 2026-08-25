@@ -406,30 +406,38 @@ def vista_inmuebles_static(filename):
 @app.route("/api/vista_inmuebles/buscar")
 @requires_modulo("vista_inmuebles")
 def vista_inmuebles_buscar():
-    fmi = (request.args.get("fmi") or "").strip()
-    if not fmi:
+    fmis_raw = request.args.get("fmi", "")
+    fmis = [f.strip() for f in fmis_raw.replace("/", ",").split(",") if f.strip()]
+    if not fmis:
         return jsonify({"error": "Falta el FMI"}), 400
 
-    # RPC buscar_inmueble_activos ya existente en Supabase (junta
-    # inventario_SAE + existencia en inventario_Activos para el semáforo
-    # de viabilidad). Viene de 01_endurecer_vista_inmuebles.sql.
-    r = requests.post(
-        f"{SUPABASE_URL}/rest/v1/rpc/buscar_inmueble_activos",
-        headers={
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={"p_fmi": fmi},
-        timeout=15,
-    )
-    if r.status_code != 200:
-        return jsonify({"error": "Error al consultar la base de datos"}), 502
+    # La RPC buscar_inmueble_activos (01_endurecer_vista_inmuebles.sql) solo
+    # busca un FMI a la vez, así que para varios se le pregunta uno por uno
+    # — son consultas puntuales por matrícula, no un listado masivo, así que
+    # el costo de hacerlo en un ciclo es insignificante.
+    resultados = []
+    for fmi in fmis:
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/buscar_inmueble_activos",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={"p_fmi": fmi},
+            timeout=15,
+        )
+        if r.status_code != 200:
+            return jsonify({"error": "Error al consultar la base de datos"}), 502
+        dato = r.json()  # null (no existe) o el objeto jsonb del inmueble
+        if dato:
+            resultados.append(dato)
 
-    registrar_log("vista_inmuebles", session.get("email"), "busqueda", fmi, obtener_ip_cliente())
+    registrar_log("vista_inmuebles", session.get("email"), "busqueda", ", ".join(fmis), obtener_ip_cliente())
 
-    # La función SQL devuelve null (no filas) o el objeto jsonb del inmueble.
-    return jsonify(r.json())
+    # Siempre una lista (aunque haya sido un solo FMI) — el frontend decide
+    # cómo mostrarla según cuántos resultados vengan.
+    return jsonify(resultados)
 
 
 # ── MÓDULO DASHBOARD ("Estadísticas") ───────────────────────────────────

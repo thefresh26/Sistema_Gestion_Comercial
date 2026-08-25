@@ -34,6 +34,7 @@ body{background:var(--off);color:var(--text);font-family:var(--body);min-height:
 .sinput{flex:1;background:rgba(255,255,255,.95);border:2px solid transparent;border-radius:10px;padding:14px 18px;font-family:'Courier New',monospace;font-size:17px;font-weight:600;color:var(--navy);outline:none;transition:border-color .2s,box-shadow .2s;letter-spacing:.05em;}
 .sinput::placeholder{color:var(--muted);font-size:13px;font-weight:400;letter-spacing:0;font-family:var(--body);}
 .sinput:focus{border-color:var(--yellow);box-shadow:0 0 0 3px rgba(245,168,0,.2);}
+.sinput-multi{resize:vertical;min-height:52px;font-family:'Courier New',monospace;line-height:1.5;}
 .sbtn{background:var(--yellow);color:var(--navy);border:none;border-radius:10px;padding:0 28px;font-family:var(--sans);font-weight:800;font-size:14px;cursor:pointer;transition:all .15s;letter-spacing:.02em;white-space:nowrap;}
 .sbtn:hover{background:var(--yellow2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(245,168,0,.35);}
 .sbtn:active{transform:translateY(0);}
