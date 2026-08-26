@@ -4,6 +4,7 @@
 # git (sin contraseña) es scripts/tarea_programada_local.ps1.ejemplo
 scripts/tarea_programada_local.ps1
 scripts/tarea_programada_log.txt
+scripts/salida_python.txt
 
 __pycache__/
 *.pyc

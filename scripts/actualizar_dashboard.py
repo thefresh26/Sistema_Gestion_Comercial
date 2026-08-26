@@ -198,7 +198,7 @@ def supabase_upsert(tabla, filas, on_conflict):
 
 
 def calcular_frv():
-    ruta = os.path.join(BASE_DIR, "frv", "data.json")
+    ruta = os.path.join(BASE_DIR, "modulos", "frv", "data.json")
     if not os.path.exists(ruta):
         log("No se encontró frv/data.json — se omite el cálculo de FRV.")
         return {}

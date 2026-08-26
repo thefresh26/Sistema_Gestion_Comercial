@@ -230,12 +230,12 @@ def modulos_visibles(rol):
 
 @app.route("/")
 def portal_shell():
-    return send_from_directory(os.path.join(BASE_DIR, "portal"), "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "portal"), "index.html")
 
 
 @app.route("/portal/<path:filename>")
 def portal_static(filename):
-    return send_from_directory(os.path.join(BASE_DIR, "portal"), filename)
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "portal"), filename)
 
 
 @app.route("/api/login", methods=["POST"])
@@ -316,14 +316,14 @@ def get_session():
 @app.route("/sae/")
 @requires_modulo("sae")
 def sae_index():
-    return send_from_directory(os.path.join(BASE_DIR, "sae"), "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "sae"), "index.html")
 
 
 @app.route("/sae/<path:filename>")
 def sae_static(filename):
     # Los estáticos (css/js/logos) no llevan datos sensibles; el dato
     # sensible (la búsqueda) sí está protegido en /api/sae/buscar.
-    return send_from_directory(os.path.join(BASE_DIR, "sae"), filename)
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "sae"), filename)
 
 
 @app.route("/api/sae/buscar")
@@ -357,13 +357,13 @@ def sae_buscar():
 @app.route("/frv/")
 @requires_modulo("frv")
 def frv_index():
-    return send_from_directory(os.path.join(BASE_DIR, "frv"), "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "frv"), "index.html")
 
 
 @app.route("/frv/data.json")
 @requires_modulo("frv")
 def frv_data():
-    with open(os.path.join(BASE_DIR, "frv", "data.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(BASE_DIR, "modulos", "frv", "data.json"), "r", encoding="utf-8") as f:
         data = json.load(f)
 
     # Lista blanca: solo salen los campos que la pantalla realmente usa,
@@ -384,7 +384,7 @@ def frv_data():
 @app.route("/frv/<path:filename>")
 @requires_modulo("frv")
 def frv_static(filename):
-    return send_from_directory(os.path.join(BASE_DIR, "frv"), filename)
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "frv"), filename)
 
 
 # ── MÓDULO VISTA_INMUEBLES ───────────────────────────────────────────────
@@ -395,12 +395,12 @@ def frv_static(filename):
 @app.route("/vista_inmuebles/")
 @requires_modulo("vista_inmuebles")
 def vista_inmuebles_index():
-    return send_from_directory(os.path.join(BASE_DIR, "vista_inmuebles"), "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "vista_inmuebles"), "index.html")
 
 
 @app.route("/vista_inmuebles/<path:filename>")
 def vista_inmuebles_static(filename):
-    return send_from_directory(os.path.join(BASE_DIR, "vista_inmuebles"), filename)
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "vista_inmuebles"), filename)
 
 
 @app.route("/api/vista_inmuebles/buscar")
@@ -449,12 +449,12 @@ def vista_inmuebles_buscar():
 @app.route("/dashboard/")
 @requires_modulo("dashboard")
 def dashboard_index():
-    return send_from_directory(os.path.join(BASE_DIR, "dashboard"), "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "dashboard"), "index.html")
 
 
 @app.route("/dashboard/<path:filename>")
 def dashboard_static(filename):
-    return send_from_directory(os.path.join(BASE_DIR, "dashboard"), filename)
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "dashboard"), filename)
 
 
 @app.route("/api/dashboard/resumen")
@@ -483,13 +483,13 @@ def dashboard_resumen():
 @app.route("/admin/")
 @requires_modulo("admin")
 def admin_index():
-    return send_from_directory(os.path.join(BASE_DIR, "admin"), "index.html")
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "admin"), "index.html")
 
 
 @app.route("/admin/<path:filename>")
 @requires_modulo("admin")
 def admin_static(filename):
-    return send_from_directory(os.path.join(BASE_DIR, "admin"), filename)
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "admin"), filename)
 
 
 def _supabase_admin_headers():

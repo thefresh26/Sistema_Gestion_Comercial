@@ -1,47 +1,21 @@
 # Sistema de Gestión Comercial — Activos por Colombia
 
-Portal unificado que reemplaza tres apps independientes (SAE, FRV y
+Portal unificado que reemplaza varias apps independientes (SAE, FRV y
 Vista_Inmuebles) por un solo backend Flask, con un solo login y una sola
 sesión, presentado como pestañas en la parte superior.
 
-## Qué cambia respecto a los repos originales
+## Módulos y permisos
 
-| Antes | Ahora |
-|---|---|
-| `Backend_SAE` + `Vista_inmuebles_SAE` (su propio login) | Pestaña **Inventario SAE** dentro del portal |
-| `consulta_frv` (su propio login) | Pestaña **Bienes FRV** dentro del portal |
-| `Vista_Inmuebles` + `Vista_Inmuebles_backend` (su propio login, su propio despliegue) | Pestaña **Inmuebles (Brokers)** dentro del portal — fusionada, ya no es una app aparte |
+El portal tiene seis módulos: **Expresiones SAE**, **Inmuebles FRV**,
+**Vista Inmuebles**, **Estadísticas** y **Permisos**, más el propio
+**Portal** (login y las pestañas). Quién ve cada uno depende del rol del
+usuario — ver el detalle completo, con la tabla de roles y el diccionario
+`MODULOS` de `app.py`, en [`docs/permisos.md`](docs/permisos.md).
 
-Los tres seguían usando el mismo proyecto de Supabase y las mismas cuentas
-(`comercial2026`, `juridica2026`, `SAE`), así que unificarlos en un solo
-login no cambia nada de la base de datos ni de los usuarios: solo evita que
-la gente tenga que loguearse varias veces.
-
-Una vez este portal esté funcionando bien en producción, los repos
-`Vista_Inmuebles` y `Vista_Inmuebles_backend` (y su servicio en Render)
-quedan redundantes — puedes apagarlos cuando quieras, no antes.
-
-## Quién ve qué (tabla de permisos)
-
-Se controla en `app.py`, diccionario `MODULOS`. Ajusta esta tabla si cambian
-las reglas de negocio, es el único lugar que hay que tocar:
-
-```python
-MODULOS = {
-    "sae": {"comercial", "admin"},
-    "frv": {"comercial", "juridico", "admin"},
-    "vista_inmuebles": {"comercial", "admin"},
-}
-```
-
-Con esto:
-- `comercial2026` ve las tres pestañas (SAE, FRV con campos de avalúo
-  ocultos, y Vista Inmuebles con el semáforo de viabilidad).
-- `juridica2026` ve solo FRV (con campos de avalúo completos).
-- Un futuro usuario con rol `admin` vería todo.
-
-Ya no existe el rol `broker`: Vista_Inmuebles dejó de tener usuarios
-externos propios y ahora es una pestaña más, solo para el equipo comercial.
+Los usuarios se administran desde el panel **Permisos** (`/admin/`, solo
+para el rol `admin`): crear usuarios, cambiar su rol, deshabilitarlos o
+resetear su contraseña, todo contra Supabase Auth directamente — no hay
+tabla de usuarios propia.
 
 ## Cómo desplegarlo (Render, plan gratis)
 
@@ -51,28 +25,25 @@ externos propios y ahora es una pestaña más, solo para el equipo comercial.
    - Start command: `gunicorn app:app`
 3. En Settings → Environment, agrega:
    - `SECRET_KEY` (una cadena larga aleatoria)
-   - `SUPABASE_URL` (la misma que ya usan SAE/FRV/Vista_Inmuebles)
+   - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (nunca la subas al repo)
-4. En Supabase (SQL Editor), antes de usarlo:
-   - Confirma que ya corriste `sql/ya_ejecutados_originales/08_endurecer_sae.sql`
-     (crea la función `buscar_folios`), `09_ajuste_logs_backend.sql`, y
-     `01_endurecer_vista_inmuebles.sql` del repo `Vista_Inmuebles_backend`
-     (crea la función `buscar_inmueble_activos`) — si ya los corriste con
-     los repos viejos, no hay que repetirlos.
-   - Ejecuta `sql/00_logs_unificado.sql` (crea la tabla `logs_acceso_sistema`
-     donde ahora se registra todo, con una columna `modulo` para saber si el
-     evento vino de SAE, FRV o Vista_Inmuebles).
+4. En Supabase (SQL Editor), antes de usarlo, ejecuta en orden los
+   archivos de `sql/` (los de `sql/ya_ejecutados_originales/` ya están
+   corridos en producción, quedan solo de referencia histórica).
+5. La tarea programada que actualiza **Estadísticas** no corre en Render
+   (los Cron Jobs piden tarjeta de crédito en el plan gratis) — corre
+   gratis como GitHub Action, ver `.github/workflows/actualizar_dashboard.yml`.
 
 ## Sobre las tablas de inventario (no hace falta tocarlas)
 
 `inventario_SAE` e `inventario_Activos` **no son tablas duplicadas que haya
-que fusionar**. Las funciones RPC que ya tienes en Supabase (`buscar_folios`
-y `buscar_inmueble_activos`) leen los datos completos del inmueble
-directamente de `inventario_SAE` — esa es la única fuente de verdad, por eso
-es la que tiene "la gran cantidad de inmuebles". `inventario_Activos` es una
-tabla chica de referencia que solo se usa para el indicador de "viabilidad"
-(si el FMI existe ahí o no). No hay nada que migrar ahí.
+que fusionar**. Las funciones RPC de Supabase (`buscar_folios` y
+`buscar_inmueble_activos`) leen los datos completos del inmueble
+directamente de `inventario_SAE` — esa es la única fuente de verdad, por
+eso es la que tiene la mayor cantidad de inmuebles. `inventario_Activos` es
+una tabla chica de referencia que solo se usa para el indicador de
+"viabilidad" (si el FMI existe ahí o no). No hay nada que migrar ahí.
 
 ## Probar en local
 
@@ -88,58 +59,73 @@ python app.py
 Abre http://localhost:5000 — vas a ver la pantalla de login, y luego el
 portal con las pestañas según el rol con el que entres.
 
-> Nota: la cookie de sesión ahora se marca como `Secure` (solo viaja por
-> HTTPS). En producción (Render) no cambia nada, porque Render ya sirve
-> todo por HTTPS. Pero si pruebas en tu máquina con `http://localhost`
-> (sin HTTPS), el login puede no "pegar" la sesión. Si necesitas probar
-> en local, comenta temporalmente la línea `SESSION_COOKIE_SECURE=True`
-> en `app.py`.
+> Nota: la cookie de sesión se marca como `Secure` (solo viaja por HTTPS).
+> En producción (Render) no cambia nada, porque Render ya sirve todo por
+> HTTPS. Pero si pruebas en tu máquina con `http://localhost` (sin HTTPS),
+> el login puede no "pegar" la sesión. Si necesitas probar en local,
+> comenta temporalmente la línea `SESSION_COOKIE_SECURE=True` en `app.py`.
 
 ## Estructura del proyecto
 
 ```
 sistema_comercial/
 ├── app.py                    → backend único: login, sesión, permisos por
-│                                módulo, y las rutas de SAE, FRV y
-│                                Vista_Inmuebles
-├── portal/                   → shell con las pestañas y la pantalla de login
-│   ├── index.html
-│   └── src/css/portal.css
-├── sae/                      → módulo de inventario SAE (se sirve en /sae/)
-├── frv/                      → módulo de bienes FRV (se sirve en /frv/)
-│   └── data.json             → reemplázalo cuando tengas datos más
-│                                recientes del scraper de FRV
-├── vista_inmuebles/          → módulo de inventario con semáforo de
-│                                viabilidad (se sirve en /vista_inmuebles/)
-├── sql/
-│   ├── 00_logs_unificado.sql
-│   └── ya_ejecutados_originales/   → scripts que ya corriste en los repos
-│                                      viejos, aquí solo de referencia
+│                                módulo y las rutas de cada módulo
 ├── requirements.txt
-└── render.yaml
+├── render.yaml
+├── modulos/                  → un subproyecto por pestaña del portal;
+│   │                            cada uno se sirve en /<nombre>/ vía
+│   │                            send_from_directory, sin depender de esta
+│   │                            carpeta contenedora
+│   ├── portal/                 → shell con las pestañas y el login
+│   │   ├── index.html
+│   │   └── src/css/portal.css
+│   ├── sae/                    → Expresiones SAE (folio → unidad/expresión)
+│   ├── frv/                    → Inmuebles FRV (bienes del Fondo)
+│   │   └── data.json             (reemplázalo cuando tengas datos más
+│   │                              recientes del scraper de FRV)
+│   ├── vista_inmuebles/        → inventario con semáforo de viabilidad
+│   ├── dashboard/               → Estadísticas (folios/unidades vendidas)
+│   └── admin/                   → panel de Permisos
+├── data/
+│   └── directorio_m365.json  → nombres reales por correo, para
+│                                autocompletar "Nombre completo" al crear
+│                                o editar usuarios en el panel de Permisos
+├── docs/
+│   └── permisos.md           → detalle de roles y quién ve qué
+├── scripts/
+│   ├── actualizar_dashboard.py    → recalcula Estadísticas (lo corre la
+│   │                                 GitHub Action todos los días)
+│   └── tarea_programada_local.ps1 → versión con contraseña real, nunca se
+│                                     sube a git (ver .gitignore)
+├── sql/
+│   ├── 00_logs_unificado.sql … 05_dashboard_folios_unidades.sql
+│   └── ya_ejecutados_originales/   → scripts ya corridos en producción,
+│                                      aquí solo de referencia histórica
+└── .github/workflows/actualizar_dashboard.yml
 ```
 
 ## Cómo funciona por dentro (para cuando alguien más lo mantenga)
 
-- El login (`/api/login`) sigue validando contra Supabase Auth, igual que
-  antes en los 3 proyectos — nunca se guardan contraseñas en este backend.
+- El login (`/api/login`) valida contra Supabase Auth — nunca se guardan
+  contraseñas en este backend. El rol y el nombre completo de cada usuario
+  viven en `user_metadata` de Supabase Auth.
 - La sesión (cookie de Flask) es una sola para todo el portal: al loguearte
-  una vez, quedas autenticado en SAE, FRV y Vista_Inmuebles.
-- Las tres pestañas se muestran dentro de un `<iframe>` que apunta a
-  `/sae/`, `/frv/` y `/vista_inmuebles/` respectivamente — son básicamente
-  los visores originales, solo que ahora comparten sesión con el portal en
-  vez de tener su propio login. Por eso casi no hubo que tocar su
-  HTML/CSS/JS de cada uno.
+  una vez, quedas autenticado en todos los módulos que tu rol permite ver.
+- Cada pestaña se muestra dentro de un `<iframe>` que apunta a su propia
+  URL (`/sae/`, `/frv/`, `/vista_inmuebles/`, `/dashboard/`, `/admin/`) —
+  son subproyectos casi independientes que comparten sesión con el portal
+  en vez de tener su propio login.
 - Todos los eventos (login, logout, búsquedas) se registran en una sola
   tabla `logs_acceso_sistema`, con una columna `modulo` para filtrar por
-  origen ('portal', 'sae', 'frv' o 'vista_inmuebles').
+  origen.
 
 ## Cosas que puedes querer ajustar después
 
-- Si agregas un cuarto módulo, solo hace falta: (1) una entrada nueva en
-  `MODULOS`, (2) una ruta protegida con `@requires_modulo("nombre")` en
-  `app.py`, (3) una entrada en `TAB_LABELS`/`TAB_DESCRIPCIONES` en
-  `portal/index.html`.
-- Un panel de administración para gestionar permisos (qué rol ve qué
-  módulo) desde la interfaz, en vez de editar `MODULOS` directamente en el
-  código, es una mejora natural a futuro.
+- Si agregas un módulo nuevo, solo hace falta: (1) una carpeta nueva en
+  `modulos/`, (2) una entrada en `MODULOS` (`app.py`), (3) un par de rutas
+  protegidas con `@requires_modulo("nombre")`, (4) una entrada en
+  `TAB_LABELS`/`TAB_DESCRIPCIONES` en `modulos/portal/index.html`.
+- Si agregas un rol nuevo, actualiza `MODULOS`, `ROLES_VISIBLES` y, si
+  aplica, `ROLES_SIN_AVALUO_FRV` en `app.py`, y refleja el cambio en
+  [`docs/permisos.md`](docs/permisos.md).
