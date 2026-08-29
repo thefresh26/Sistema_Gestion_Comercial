@@ -92,14 +92,16 @@ function construirSelectRoles(select, valorActual){
 function construirTablaUsuarios(){
   document.getElementById('conteo-usuarios').textContent = `${usuarios.length} usuario${usuarios.length === 1 ? '' : 's'}`;
   const body = document.getElementById('tabla-usuarios-body');
-  body.innerHTML = usuarios.map(u => {
+  body.innerHTML = usuarios.map((u, i) => {
     const selectId = `rol-${u.id}`;
     // Si todavía no tiene nombre guardado pero ya hay coincidencia en el
     // directorio de Microsoft 365, se muestra de una vez: el nombre real
     // ya se está guardando solo en segundo plano (ver cargarUsuarios).
     const nombreMostrado = u.nombre || u.sugerencia_nombre || u.usuario;
+    // Entrada escalonada breve (tope de 15 filas visibles a la vez).
+    const retraso = Math.min(i, 15) * 25;
     return `
-      <tr class="${u.deshabilitado ? 'fila-deshabilitada' : ''}">
+      <tr class="fila-in ${u.deshabilitado ? 'fila-deshabilitada' : ''}" style="animation-delay:${retraso}ms">
         <td>
           <div class="usuario-celda">
             <span class="usuario-nombre">${nombreMostrado}${u.es_yo ? '<span class="usuario-tu">Tú</span>' : ''}</span>

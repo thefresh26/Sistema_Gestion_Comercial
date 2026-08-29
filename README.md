@@ -79,9 +79,10 @@ sistema_comercial/
 │   │                            carpeta contenedora
 │   ├── portal/                 → shell con las pestañas y el login
 │   │   ├── index.html
-│   │   └── src/css/portal.css
+│   │   └── src/css/portal.css, src/js/app.js
 │   ├── sae/                    → Expresiones SAE (folio → unidad/expresión)
 │   ├── frv/                    → Inmuebles FRV (bienes del Fondo)
+│   │   ├── src/css/styles.css, src/js/app.js
 │   │   └── data.json             (reemplázalo cuando tengas datos más
 │   │                              recientes del scraper de FRV)
 │   ├── vista_inmuebles/        → inventario con semáforo de viabilidad
@@ -95,9 +96,11 @@ sistema_comercial/
 │   └── permisos.md           → detalle de roles y quién ve qué
 ├── scripts/
 │   ├── actualizar_dashboard.py    → recalcula Estadísticas (lo corre la
-│   │                                 GitHub Action todos los días)
-│   └── tarea_programada_local.ps1 → versión con contraseña real, nunca se
-│                                     sube a git (ver .gitignore)
+│   │                                 GitHub Action todos los días; su ruta
+│   │                                 está fija en el workflow, no mover)
+│   └── tarea_programada_windows/  → la Tarea Programada de Windows que
+│       └── tarea_programada_local.ps1 → versión con contraseña real, nunca
+│                                          se sube a git (ver .gitignore)
 ├── sql/
 │   ├── 00_logs_unificado.sql … 05_dashboard_folios_unidades.sql
 │   └── ya_ejecutados_originales/   → scripts ya corridos en producción,

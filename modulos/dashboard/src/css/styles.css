@@ -80,6 +80,7 @@ header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;he
   font-weight:600;
   font-size:13px;
   cursor:pointer;
+  transition:background .15s ease;
 }
 .btn-tabla:hover{background:rgba(255,255,255,.18);}
 
@@ -110,6 +111,11 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
   transition:opacity .15s;
 }
 .stat-tile.oculto{opacity:.4;}
+.stat-tile.fila-in{opacity:0; animation:fila-in .35s ease forwards;}
+@keyframes fila-in{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:translateY(0); }
+}
 .stat-tile .stat-label{
   font-family:var(--sans);
   font-size:11px;
@@ -172,6 +178,7 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
   border:none;
   padding:6px 14px;
   cursor:pointer;
+  transition:background .15s ease, color .15s ease;
 }
 .vista-btn.activo{background:var(--blue);color:#fff;}
 .vista-btn:not(.activo):hover{background:#e8edf6;}
@@ -312,9 +319,11 @@ th{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%);
 }
 td{color:var(--text);}
+tbody tr{transition:background .12s ease;}
 tbody tr:nth-child(even){background:var(--off);}
 tbody tr:hover{background:#e8edf6;}
 tbody tr:last-child td{border-bottom:none;}
+tbody tr.fila-in{opacity:0; animation:fila-in .3s ease forwards;}
 
 .tabla-sistema{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--col);}
 .tabla-sistema .dot{width:8px;height:8px;border-radius:50%;background:var(--col);display:inline-block;}
@@ -361,3 +370,14 @@ tbody tr:last-child td{border-bottom:none;}
   white-space:nowrap;
 }
 .tooltip.visible{opacity:1;}
+
+/* Respeta "reducir movimiento" del sistema operativo: apaga animaciones y
+   transiciones en todo el módulo sin tener que tocar cada regla. */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:0.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}

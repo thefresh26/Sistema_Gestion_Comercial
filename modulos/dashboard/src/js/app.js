@@ -195,22 +195,22 @@ function construirStatTiles(filas){
   const etiquetaMedida = medidaFiltro === 'unidad' ? 'unidades' : 'folios';
   const grid = document.getElementById('stat-grid');
   grid.innerHTML = `
-    <div class="stat-tile ${sistemasOcultos.has('SAE') ? 'oculto' : ''}">
+    <div class="stat-tile fila-in ${sistemasOcultos.has('SAE') ? 'oculto' : ''}" style="animation-delay:0ms">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.SAE}"></span>SAE · Vendidos</div>
       <div class="stat-value">${fmtNumero(totales.SAE.cantidad)}</div>
       <div class="stat-sub">${etiquetaMedida}</div>
     </div>
-    <div class="stat-tile ${sistemasOcultos.has('SAE') ? 'oculto' : ''}">
+    <div class="stat-tile fila-in ${sistemasOcultos.has('SAE') ? 'oculto' : ''}" style="animation-delay:60ms">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.SAE}"></span>SAE · Valor vendido</div>
       <div class="stat-value" style="font-size:19px;">${fmtMoneda(totales.SAE.valor_total)}</div>
       <div class="stat-sub">acumulado</div>
     </div>
-    <div class="stat-tile ${sistemasOcultos.has('FRV') ? 'oculto' : ''}">
+    <div class="stat-tile fila-in ${sistemasOcultos.has('FRV') ? 'oculto' : ''}" style="animation-delay:120ms">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.FRV}"></span>FRV · Vendidos</div>
       <div class="stat-value">${fmtNumero(totales.FRV.cantidad)}</div>
       <div class="stat-sub">bienes</div>
     </div>
-    <div class="stat-tile ${sistemasOcultos.has('FRV') ? 'oculto' : ''}">
+    <div class="stat-tile fila-in ${sistemasOcultos.has('FRV') ? 'oculto' : ''}" style="animation-delay:180ms">
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.FRV}"></span>FRV · Valor vendido</div>
       <div class="stat-value" style="font-size:19px;">${fmtMoneda(totales.FRV.valor_total)}</div>
       <div class="stat-sub">acumulado</div>
@@ -224,11 +224,13 @@ function construirTabla(filasCrudas){
   body.innerHTML = filas
     .slice()
     .sort((a,b) => a.anio - b.anio || (a.mes||0) - (b.mes||0) || a.sistema.localeCompare(b.sistema))
-    .map(f => {
+    .map((f, i) => {
       const color = f.sistema === 'SAE' ? 'var(--serie-sae)' : 'var(--serie-frv)';
       const medidaTexto = f.medida === 'total' ? 'Bienes (FRV)' : (f.medida === 'unidad' ? 'Unidades' : 'Folios');
+      // Entrada escalonada breve (tope de 15 filas visibles a la vez).
+      const retraso = Math.min(i, 15) * 20;
       return `
-      <tr>
+      <tr class="fila-in" style="animation-delay:${retraso}ms">
         <td><span class="tabla-sistema" style="--col:${color}"><span class="dot"></span>${f.sistema}</span></td>
         <td>${f.anio}</td>
         <td>${f.mes ? NOMBRES_MES[f.mes] : '—'}</td>

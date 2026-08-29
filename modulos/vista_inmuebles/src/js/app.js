@@ -356,9 +356,13 @@ async function buscar(){
       </div>
     ` : '';
 
-    const fichasHtml = fmis.map(f=>{
+    const fichasHtml = fmis.map((f, i)=>{
       const r = encontrados.get(f.toUpperCase());
-      return r ? renderPropiedadHtml(r) : renderNoEncontradoHtml(f);
+      const html = r ? renderPropiedadHtml(r) : renderNoEncontradoHtml(f);
+      // Entrada escalonada breve cuando son varios FMI a la vez (tope de 8
+      // fichas para que el retraso no se sienta lento con listas largas).
+      const retraso = Math.min(i, 8) * 60;
+      return `<div class="fila-in" style="animation-delay:${retraso}ms">${html}</div>`;
     }).join('<div style="height:24px"></div>');
 
     res.innerHTML = resumenHtml + fichasHtml;
