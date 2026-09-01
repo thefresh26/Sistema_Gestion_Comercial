@@ -20,6 +20,11 @@
   --serie-frv: var(--gold-deep);
 }
 
+/* Easing con pequeño overshoot (rebasa el destino y vuelve), igual que en portal.css */
+:root{
+  --ease-overshoot: cubic-bezier(.34, 1.35, .64, 1);
+}
+
 *{box-sizing:border-box;}
 body{
   margin:0;
@@ -80,9 +85,10 @@ header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;he
   font-weight:600;
   font-size:13px;
   cursor:pointer;
-  transition:background .15s ease;
+  transition:background .3s ease, transform .2s var(--ease-overshoot);
 }
 .btn-tabla:hover{background:rgba(255,255,255,.18);}
+.btn-tabla:active{transform:scale(.94); transition-duration:.1s;}
 
 main{max-width:1100px;margin:0 auto;padding:28px;}
 
@@ -178,8 +184,9 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
   border:none;
   padding:6px 14px;
   cursor:pointer;
-  transition:background .15s ease, color .15s ease;
+  transition:background .3s ease, color .3s ease, transform .2s var(--ease-overshoot);
 }
+.vista-btn:active{transform:scale(.96); transition-duration:.1s;}
 .vista-btn.activo{background:var(--blue);color:#fff;}
 .vista-btn:not(.activo):hover{background:#e8edf6;}
 
@@ -241,9 +248,10 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
   font-weight:600;
   color:var(--text);
   cursor:pointer;
-  transition:opacity .15s, background .15s;
+  transition:opacity .3s ease, background .3s ease, transform .2s var(--ease-overshoot);
 }
 .legend button:hover{background:var(--off);}
+.legend button:active{transform:scale(.94); transition-duration:.1s;}
 .legend button.oculto{opacity:.35;}
 .legend .sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
 
@@ -279,7 +287,7 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
   height:100%;
   border-radius:4px;
   min-width:4px;
-  transition:filter .15s;
+  transition:filter .3s ease;
 }
 .barra-fill:hover{filter:brightness(1.08);cursor:pointer;}
 .barra-valor{
@@ -319,7 +327,7 @@ th{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%);
 }
 td{color:var(--text);}
-tbody tr{transition:background .12s ease;}
+tbody tr{transition:background .3s ease;}
 tbody tr:nth-child(even){background:var(--off);}
 tbody tr:hover{background:#e8edf6;}
 tbody tr:last-child td{border-bottom:none;}

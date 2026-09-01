@@ -17,6 +17,11 @@
   --heading:'Montserrat', Arial, sans-serif;
 }
 
+/* Easing con pequeño overshoot (rebasa el destino y vuelve), igual que en portal.css */
+:root{
+  --ease-overshoot: cubic-bezier(.34, 1.35, .64, 1);
+}
+
 *{box-sizing:border-box;}
 body{margin:0;font-family:var(--sans);background:var(--off);color:var(--text);min-height:100vh;}
 
@@ -49,10 +54,10 @@ header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;he
   font-weight:700;
   font-size:13px;
   cursor:pointer;
-  transition:background .15s ease, transform .12s ease;
+  transition:background .32s ease, transform .3s var(--ease-overshoot);
 }
 .btn-nuevo:hover{background:var(--yellow2,#ffc233); transform:translateY(-1px);}
-.btn-nuevo:active{transform:translateY(0);}
+.btn-nuevo:active{transform:translateY(0) scale(.96); transition-duration:.1s;}
 
 .btn-secundario-header{
   background:rgba(255,255,255,.1);
@@ -64,9 +69,10 @@ header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;he
   font-weight:600;
   font-size:13px;
   cursor:pointer;
-  transition:background .15s ease;
+  transition:background .3s ease, transform .2s var(--ease-overshoot), opacity .3s ease;
 }
 .btn-secundario-header:hover{background:rgba(255,255,255,.18);}
+.btn-secundario-header:active:not(:disabled){transform:scale(.94); transition-duration:.1s;}
 .btn-secundario-header:disabled{opacity:.6;cursor:not-allowed;}
 
 .sugerencia-nombre{
@@ -136,7 +142,7 @@ th{
   background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%);
 }
 td{color:var(--text);}
-tbody tr{transition:background .12s ease;}
+tbody tr{transition:background .3s ease;}
 tbody tr:nth-child(even){background:var(--off);}
 tbody tr:hover{background:#e8edf6;}
 tbody tr:last-child td{border-bottom:none;}
@@ -174,7 +180,7 @@ select.rol-select{
   padding:6px 10px;
   background:var(--off);
   cursor:pointer;
-  transition:border-color .15s ease;
+  transition:border-color .3s ease;
 }
 select.rol-select:hover:not(:disabled){border-color:var(--blue);}
 select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
@@ -200,9 +206,10 @@ select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
   background:var(--off);
   color:var(--text);
   cursor:pointer;
-  transition:background .15s ease, border-color .15s ease;
+  transition:background .3s ease, border-color .3s ease, transform .2s var(--ease-overshoot), opacity .3s ease;
 }
 .btn-accion:hover{background:#e8edf6;}
+.btn-accion:active:not(:disabled){transform:scale(.94); transition-duration:.1s;}
 .btn-accion.peligro{color:var(--red);border-color:#f3c6c1;}
 .btn-accion.peligro:hover{background:var(--red-bg);}
 .btn-accion.exito{color:var(--green);border-color:#bfe6cf;}
@@ -219,12 +226,12 @@ select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
   padding:20px;
   visibility:hidden;
   opacity:0;
-  transition:opacity .2s ease, visibility 0s linear .2s;
+  transition:opacity .3s ease, visibility 0s linear .3s;
 }
 .modal-fondo.visible{
   visibility:visible;
   opacity:1;
-  transition:opacity .2s ease, visibility 0s linear 0s;
+  transition:opacity .3s ease, visibility 0s linear 0s;
 }
 .modal-card{
   background:#fff;
@@ -233,9 +240,9 @@ select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
   width:100%;
   max-width:380px;
   box-shadow:0 20px 50px rgba(0,0,0,.25);
-  transform:translateY(16px) scale(.98);
+  transform:translateY(20px) scale(.98);
   opacity:0;
-  transition:transform .2s ease, opacity .2s ease;
+  transition:transform .35s var(--ease-overshoot), opacity .32s ease;
 }
 .modal-fondo.visible .modal-card{
   transform:translateY(0) scale(1);
@@ -273,12 +280,15 @@ select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
   border-radius:8px;
   cursor:pointer;
   border:none;
+  transition:background .32s ease, transform .3s var(--ease-overshoot), opacity .32s ease;
 }
 .btn-primario{background:var(--blue);color:#fff;}
 .btn-primario:hover{background:#164a9d;}
+.btn-primario:active:not(:disabled){transform:scale(.96); transition-duration:.1s;}
 .btn-primario:disabled{opacity:.6;cursor:not-allowed;}
 .btn-secundario{background:var(--off);color:var(--text);border:1px solid var(--border);}
 .btn-secundario:hover{background:#e8edf6;}
+.btn-secundario:active{transform:scale(.96); transition-duration:.1s;}
 
 .toast{
   position:fixed;
@@ -293,7 +303,7 @@ select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
   font-weight:600;
   opacity:0;
   pointer-events:none;
-  transition:opacity .2s, transform .2s;
+  transition:opacity .3s ease, transform .32s var(--ease-overshoot);
   z-index:200;
   box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
