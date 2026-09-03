@@ -16,9 +16,8 @@
     <div>
       <div class="brand-eyebrow">Área Comercial · Panel Ejecutivo</div>
       <h1 class="brand-title">Estadísticas de Ventas</h1>
-      <p class="brand-sub">Estado de ventas de SAE y FRV de un vistazo — folios, unidades y valor, por año y mes</p>
+      <p class="brand-sub">Estado de ventas de SAE, FRV y Subastas de un vistazo — cantidad y valor, por año y mes</p>
     </div>
-    <button class="btn-tabla" id="btn-toggle-tabla">Ver tabla detallada</button>
   </div>
 </header>
 
@@ -59,6 +58,7 @@
           <button type="button" class="vista-btn activo" data-sistema="todos">Todos</button>
           <button type="button" class="vista-btn" data-sistema="SAE">SAE</button>
           <button type="button" class="vista-btn" data-sistema="FRV">FRV</button>
+          <button type="button" class="vista-btn" data-sistema="SUBASTAS">Subastas</button>
         </div>
       </div>
       <div class="filtro-grupo filtro-grupo-vista">
@@ -75,17 +75,9 @@
       <article class="chart-card span-2">
         <div class="chart-head">
           <h2>Evolución mensual — valor vendido</h2>
-          <p class="chart-sub">SAE vs. FRV, excluye el bloque histórico acumulado de FRV para no distorsionar la tendencia</p>
+          <p class="chart-sub">SAE, FRV y Subastas — excluye el bloque histórico acumulado de FRV para no distorsionar la tendencia</p>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chart-evolucion-valor"></canvas></div>
-      </article>
-
-      <article class="chart-card span-2">
-        <div class="chart-head">
-          <h2>Evolución mensual — cantidad vendida</h2>
-          <p class="chart-sub">Folios/unidades (SAE) y bienes (FRV), sin el bloque histórico de FRV</p>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chart-evolucion-cantidad"></canvas></div>
       </article>
 
       <article class="chart-card">
@@ -94,55 +86,13 @@
       </article>
 
       <article class="chart-card">
-        <div class="chart-head"><h2>Cantidad vendida por año</h2></div>
-        <div class="chart-canvas-wrap"><canvas id="chart-anual-cantidad"></canvas></div>
-      </article>
-
-      <article class="chart-card">
         <div class="chart-head"><h2>Participación en valor vendido</h2></div>
         <div class="chart-canvas-wrap chart-canvas-wrap-donut"><canvas id="chart-donut-valor"></canvas></div>
       </article>
 
-      <article class="chart-card">
-        <div class="chart-head"><h2>Participación en cantidad vendida</h2></div>
-        <div class="chart-canvas-wrap chart-canvas-wrap-donut"><canvas id="chart-donut-cantidad"></canvas></div>
-      </article>
-
-      <article class="chart-card">
-        <div class="chart-head">
-          <h2>SAE: folios vs. unidades por año</h2>
-          <p class="chart-sub">Una unidad puede agrupar varios folios vendidos juntos</p>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chart-sae-medida"></canvas></div>
-      </article>
-
-      <article class="chart-card">
-        <div class="chart-head">
-          <h2>Variación % mes contra mes anterior</h2>
-          <p class="chart-sub">Valor vendido combinado, sin el bloque histórico de FRV</p>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chart-variacion"></canvas></div>
-      </article>
-
-      <article class="chart-card">
-        <div class="chart-head"><h2>Top 6 meses con mayor valor vendido</h2></div>
+      <article class="chart-card span-2">
+        <div class="chart-head"><h2>Top 5 meses con mayor valor vendido</h2></div>
         <div class="chart-canvas-wrap"><canvas id="chart-top-meses"></canvas></div>
-      </article>
-
-      <article class="chart-card">
-        <div class="chart-head">
-          <h2>Valor vs. cantidad por año</h2>
-          <p class="chart-sub">Combinado SAE + FRV según los sistemas activos</p>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chart-combo-anual"></canvas></div>
-      </article>
-
-      <article class="chart-card">
-        <div class="chart-head">
-          <h2>FRV: histórico acumulado vs. tiempo real</h2>
-          <p class="chart-sub">Lo ya monetizado antes de activar el panel, frente a lo detectado desde entonces</p>
-        </div>
-        <div class="chart-canvas-wrap"><canvas id="chart-frv-historico"></canvas></div>
       </article>
 
     </section>
@@ -158,16 +108,12 @@
       mostrado para FRV es un bloque histórico acumulado (todo lo que ya estaba
       monetizado al activar este panel); de ahí en adelante, cada período refleja
       lo detectado como nuevo en ese momento real.
+      <br><strong>Nota sobre Subastas:</strong> se cuenta el inmueble más recientemente
+      cerrado con puja ganadora (LEGACY o Actibid); algunos inmuebles que pertenecen a un
+      grupo sin "padre" marcado en la base de datos pueden quedar fuera hasta que se
+      corrija ese dato.
     </p>
 
-    <section class="tabla-wrap" id="tabla-wrap" style="display:none;">
-      <table id="tabla-datos">
-        <thead>
-          <tr><th>Sistema</th><th>Año</th><th>Mes</th><th>Medida</th><th>Cantidad</th><th>Valor total</th></tr>
-        </thead>
-        <tbody id="tabla-body"></tbody>
-      </table>
-    </section>
   </div>
   <div id="estado-error" style="display:none;"></div>
 </main>

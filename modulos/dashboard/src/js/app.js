@@ -1,5 +1,8 @@
-const COLOR_HEX = { SAE: '#1a5bbf', FRV: '#c77700' };
-const COLOR_SUAVE = { SAE: 'rgba(26,91,191,.14)', FRV: 'rgba(199,119,0,.14)' };
+const SISTEMAS = ['SAE', 'FRV', 'SUBASTAS'];
+const COLOR_HEX = { SAE: '#1a5bbf', FRV: '#c77700', SUBASTAS: '#6b46c1' };
+const COLOR_SUAVE = { SAE: 'rgba(26,91,191,.14)', FRV: 'rgba(199,119,0,.14)', SUBASTAS: 'rgba(107,70,193,.14)' };
+const COLOR_BG = { SAE: '#e8f0fc', FRV: '#fdf1e3', SUBASTAS: '#f1ecfb' };
+const NOMBRE_SISTEMA = { SAE: 'SAE', FRV: 'FRV', SUBASTAS: 'Subastas' };
 const NOMBRES_MES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const NOMBRES_MES_CORTO = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -11,7 +14,7 @@ let datosCompletos = [];
 const sistemasOcultos = new Set();   // sistemas apagados por el segmentador "Sistema"
 let anioFiltro = 'todos';            // 'todos' o un año específico
 let mesFiltro = 'todos';             // 'todos' o un mes específico (1-12)
-let medidaFiltro = 'folio';          // 'folio' o 'unidad' — solo aplica a SAE; FRV siempre usa 'total'
+let medidaFiltro = 'folio';          // 'folio' o 'unidad' — solo aplica a SAE; FRV y Subastas siempre usan 'total'
 
 const charts = {};                   // instancias Chart.js vivas, por id de canvas
 
@@ -38,11 +41,13 @@ const ICONOS = {
   capas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"></path><path d="m2 13 10 5 10-5"></path><path d="m2 18 10 5 10-5"></path></svg>',
   edificio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="9" height="18"></rect><rect x="13" y="9" width="7" height="12"></rect><path d="M7 7h1M7 11h1M7 15h1M16 12h1M16 16h1"></path></svg>',
   ticket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z"></path><path d="M13 7v10" stroke-dasharray="2 2"></path></svg>',
+  martillo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 12.5-8 8a2.12 2.12 0 0 1-3-3l8-8"></path><path d="m17.64 15.36 3.54-3.54a1 1 0 0 0 0-1.41l-4.24-4.24a1 1 0 0 0-1.41 0l-3.54 3.54"></path><path d="m9 11 4-4"></path><path d="m6.5 5.5 3 3"></path></svg>',
   historial: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v4h4"></path><path d="M12 8v4l3 2"></path></svg>',
   tendenciaArriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 10 10l4 4 7-7"></path><path d="M15 7h6v6"></path></svg>',
   tendenciaAbajo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l7 7 4-4 7 7"></path><path d="M15 17h6v-6"></path></svg>',
   bombilla: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"></path><path d="M12 3a6 6 0 0 0-4 10.4c.6.5 1 1.3 1 2.1v.5h6v-.5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3Z"></path></svg>',
 };
+const ICONOS_SISTEMA = { SAE: ICONOS.capas, FRV: ICONOS.edificio, SUBASTAS: ICONOS.martillo };
 
 // ── Filtrado ─────────────────────────────────────────────────────────────
 // Devuelve las filas de datosCompletos según el filtro activo, con overrides
@@ -68,16 +73,28 @@ function filasBase(opts = {}){
   });
 }
 
+function nuevoAcumulador(){
+  const o = {};
+  SISTEMAS.forEach(s => { o[s] = { cantidad: 0, valor_total: 0 }; });
+  return o;
+}
+
+function sumaSistemas(g, campo){
+  return SISTEMAS.reduce((s, sis) => s + (g[sis] ? Number(g[sis][campo]) : 0), 0);
+}
+
 function agruparPorPeriodo(filas){
   const acc = new Map();
   filas.forEach(f => {
     const clave = `${f.anio}-${f.mes}`;
     if (!acc.has(clave)){
-      acc.set(clave, { anio: f.anio, mes: f.mes, SAE: { cantidad: 0, valor_total: 0 }, FRV: { cantidad: 0, valor_total: 0 } });
+      acc.set(clave, { anio: f.anio, mes: f.mes, ...nuevoAcumulador() });
     }
     const g = acc.get(clave);
-    g[f.sistema].cantidad += f.cantidad;
-    g[f.sistema].valor_total += Number(f.valor_total);
+    if (g[f.sistema]){
+      g[f.sistema].cantidad += f.cantidad;
+      g[f.sistema].valor_total += Number(f.valor_total);
+    }
   });
   return [...acc.values()].sort((a, b) => a.anio - b.anio || a.mes - b.mes);
 }
@@ -86,11 +103,13 @@ function agruparPorAnio(filas){
   const acc = new Map();
   filas.forEach(f => {
     if (!acc.has(f.anio)){
-      acc.set(f.anio, { anio: f.anio, SAE: { cantidad: 0, valor_total: 0 }, FRV: { cantidad: 0, valor_total: 0 } });
+      acc.set(f.anio, { anio: f.anio, ...nuevoAcumulador() });
     }
     const g = acc.get(f.anio);
-    g[f.sistema].cantidad += f.cantidad;
-    g[f.sistema].valor_total += Number(f.valor_total);
+    if (g[f.sistema]){
+      g[f.sistema].cantidad += f.cantidad;
+      g[f.sistema].valor_total += Number(f.valor_total);
+    }
   });
   return [...acc.values()].sort((a, b) => a.anio - b.anio);
 }
@@ -136,7 +155,7 @@ function badgeTendencia(variacion){
 function construirInsights(){
   const el = document.getElementById('insights-banner');
   const timeline = agruparPorPeriodo(filasBase({ ignorarAnio: true, ignorarMes: true, incluirHistorico: false }))
-    .map(g => ({ ...g, combinadoValor: g.SAE.valor_total + g.FRV.valor_total }));
+    .map(g => ({ ...g, combinadoValor: sumaSistemas(g, 'valor_total') }));
 
   const mom = calcularVariacion(timeline, 'combinadoValor');
   const yoy = calcularVariacionAnual(timeline, 'combinadoValor');
@@ -175,22 +194,31 @@ function construirInsights(){
 // ── Tarjetas KPI ─────────────────────────────────────────────────────────
 function construirKPIs(){
   const filas = filasBase();
-  const totales = { SAE: { cantidad: 0, valor_total: 0 }, FRV: { cantidad: 0, valor_total: 0 } };
+  const totales = nuevoAcumulador();
   filas.forEach(f => {
-    totales[f.sistema].cantidad += f.cantidad;
-    totales[f.sistema].valor_total += Number(f.valor_total);
+    if (totales[f.sistema]){
+      totales[f.sistema].cantidad += f.cantidad;
+      totales[f.sistema].valor_total += Number(f.valor_total);
+    }
   });
-  const valorCombinado = totales.SAE.valor_total + totales.FRV.valor_total;
-  const cantidadCombinada = totales.SAE.cantidad + totales.FRV.cantidad;
+  const valorCombinado = sumaSistemas(totales, 'valor_total');
+  const cantidadCombinada = sumaSistemas(totales, 'cantidad');
   const ticketProm = cantidadCombinada ? valorCombinado / cantidadCombinada : 0;
-  const pctSAE = valorCombinado ? (totales.SAE.valor_total / valorCombinado) * 100 : 0;
-  const pctFRV = valorCombinado ? (totales.FRV.valor_total / valorCombinado) * 100 : 0;
   const etiquetaMedida = medidaFiltro === 'unidad' ? 'unidades' : 'folios';
 
   const timeline = agruparPorPeriodo(filasBase({ ignorarAnio: true, ignorarMes: true, incluirHistorico: false }))
-    .map(g => ({ ...g, combinadoValor: g.SAE.valor_total + g.FRV.valor_total, combinadoCantidad: g.SAE.cantidad + g.FRV.cantidad }));
+    .map(g => ({ ...g, combinadoValor: sumaSistemas(g, 'valor_total'), combinadoCantidad: sumaSistemas(g, 'cantidad') }));
   const momValor = calcularVariacion(timeline, 'combinadoValor');
   const momCantidad = calcularVariacion(timeline, 'combinadoCantidad');
+
+  const tilesSistema = SISTEMAS.map((s, i) => `
+    <div class="stat-tile fila-in ${sistemasOcultos.has(s) ? 'oculto' : ''}" style="animation-delay:${100 + i * 50}ms">
+      <div class="stat-icon" style="background:${COLOR_BG[s]};color:${COLOR_HEX[s]}">${ICONOS_SISTEMA[s]}</div>
+      <div class="stat-label"><span class="dot" style="background:${COLOR_HEX[s]}"></span>${NOMBRE_SISTEMA[s]} · Valor vendido</div>
+      <div class="stat-value" style="font-size:19px;">${fmtMonedaCorta(totales[s].valor_total)}</div>
+      <div class="stat-sub">${fmtPct(valorCombinado ? (totales[s].valor_total / valorCombinado) * 100 : 0)} del total combinado</div>
+    </div>
+  `).join('');
 
   const grid = document.getElementById('stat-grid');
   grid.innerHTML = `
@@ -202,29 +230,18 @@ function construirKPIs(){
     </div>
     <div class="stat-tile fila-in" style="animation-delay:50ms">
       <div class="stat-icon" style="background:#e8f0fc;color:var(--blue)">${ICONOS.capas}</div>
-      <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes vendidos</div>
+      <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes + subastas vendidas</div>
       <div class="stat-value">${fmtNumero(cantidadCombinada)}</div>
       ${badgeTendencia(momCantidad)}
     </div>
-    <div class="stat-tile fila-in ${sistemasOcultos.has('SAE') ? 'oculto' : ''}" style="animation-delay:100ms">
-      <div class="stat-icon" style="background:#e8f0fc;color:${COLOR_HEX.SAE}">${ICONOS.capas}</div>
-      <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.SAE}"></span>SAE · Valor vendido</div>
-      <div class="stat-value" style="font-size:19px;">${fmtMonedaCorta(totales.SAE.valor_total)}</div>
-      <div class="stat-sub">${fmtPct(pctSAE)} del total combinado</div>
-    </div>
-    <div class="stat-tile fila-in ${sistemasOcultos.has('FRV') ? 'oculto' : ''}" style="animation-delay:150ms">
-      <div class="stat-icon" style="background:#fdf1e3;color:${COLOR_HEX.FRV}">${ICONOS.edificio}</div>
-      <div class="stat-label"><span class="dot" style="background:${COLOR_HEX.FRV}"></span>FRV · Valor vendido</div>
-      <div class="stat-value" style="font-size:19px;">${fmtMonedaCorta(totales.FRV.valor_total)}</div>
-      <div class="stat-sub">${fmtPct(pctFRV)} del total combinado</div>
-    </div>
-    <div class="stat-tile fila-in" style="animation-delay:200ms">
+    ${tilesSistema}
+    <div class="stat-tile fila-in" style="animation-delay:250ms">
       <div class="stat-icon" style="background:#eef2fb;color:var(--navy)">${ICONOS.ticket}</div>
       <div class="stat-label">Ticket promedio</div>
       <div class="stat-value" style="font-size:19px;">${fmtMonedaCorta(ticketProm)}</div>
-      <div class="stat-sub">valor / ${etiquetaMedida}</div>
+      <div class="stat-sub">valor / unidad vendida</div>
     </div>
-    <div class="stat-tile fila-in" style="animation-delay:250ms">
+    <div class="stat-tile fila-in" style="animation-delay:300ms">
       <div class="stat-icon" style="background:#fdf1e3;color:${COLOR_HEX.FRV}">${ICONOS.historial}</div>
       <div class="stat-label">FRV · Histórico vs. reciente</div>
       <div class="stat-value" style="font-size:19px;">${fmtPct(calcularHistoricoFRV().pctHist)}</div>
@@ -265,7 +282,7 @@ const ejeMoneda = { ticks: { callback: v => fmtMonedaCorta(v) } };
 const ejeNumero = { ticks: { callback: v => fmtNumero(v) } };
 const gridSuave = { color: 'rgba(13,31,60,.06)' };
 
-// 1. Evolución mensual — valor
+// 1. Evolución mensual — valor, una serie por sistema activo
 function graficarEvolucionValor(){
   const serie = agruparPorPeriodo(filasBase({ incluirHistorico: false }));
   const etiquetas = serie.map(g => `${NOMBRES_MES_CORTO[g.mes]} ${String(g.anio).slice(2)}`);
@@ -273,10 +290,12 @@ function graficarEvolucionValor(){
     type: 'line',
     data: {
       labels: etiquetas,
-      datasets: [
-        { label: 'SAE', data: serie.map(g => g.SAE.valor_total), borderColor: COLOR_HEX.SAE, backgroundColor: COLOR_SUAVE.SAE, fill: true, tension: .3, hidden: sistemasOcultos.has('SAE'), pointRadius: 2, pointHoverRadius: 5 },
-        { label: 'FRV', data: serie.map(g => g.FRV.valor_total), borderColor: COLOR_HEX.FRV, backgroundColor: COLOR_SUAVE.FRV, fill: true, tension: .3, hidden: sistemasOcultos.has('FRV'), pointRadius: 2, pointHoverRadius: 5 },
-      ],
+      datasets: SISTEMAS.map(s => ({
+        label: NOMBRE_SISTEMA[s],
+        data: serie.map(g => g[s].valor_total),
+        borderColor: COLOR_HEX[s], backgroundColor: COLOR_SUAVE[s], fill: true, tension: .3,
+        hidden: sistemasOcultos.has(s), pointRadius: 2, pointHoverRadius: 5,
+      })),
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -287,39 +306,18 @@ function graficarEvolucionValor(){
   });
 }
 
-// 2. Evolución mensual — cantidad
-function graficarEvolucionCantidad(){
-  const serie = agruparPorPeriodo(filasBase({ incluirHistorico: false }));
-  const etiquetas = serie.map(g => `${NOMBRES_MES_CORTO[g.mes]} ${String(g.anio).slice(2)}`);
-  crearOActualizar('chart-evolucion-cantidad', {
-    type: 'line',
-    data: {
-      labels: etiquetas,
-      datasets: [
-        { label: 'SAE', data: serie.map(g => g.SAE.cantidad), borderColor: COLOR_HEX.SAE, backgroundColor: COLOR_SUAVE.SAE, fill: true, tension: .3, hidden: sistemasOcultos.has('SAE'), pointRadius: 2, pointHoverRadius: 5 },
-        { label: 'FRV', data: serie.map(g => g.FRV.cantidad), borderColor: COLOR_HEX.FRV, backgroundColor: COLOR_SUAVE.FRV, fill: true, tension: .3, hidden: sistemasOcultos.has('FRV'), pointRadius: 2, pointHoverRadius: 5 },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      scales: { y: { ...ejeNumero, grid: gridSuave }, x: { grid: { display: false } } },
-      plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtNumero(ctx.parsed.y)}` } } },
-    },
-  });
-}
-
-// 3 y 4. Comparativo anual (valor / cantidad)
+// 2. Comparativo anual — valor, una barra por sistema activo
 function graficarAnual(id, campo, formateador){
   const serie = agruparPorAnio(filasBase());
   crearOActualizar(id, {
     type: 'bar',
     data: {
       labels: serie.map(g => String(g.anio)),
-      datasets: [
-        { label: 'SAE', data: serie.map(g => g.SAE[campo]), backgroundColor: COLOR_HEX.SAE, borderRadius: 6, hidden: sistemasOcultos.has('SAE') },
-        { label: 'FRV', data: serie.map(g => g.FRV[campo]), backgroundColor: COLOR_HEX.FRV, borderRadius: 6, hidden: sistemasOcultos.has('FRV') },
-      ],
+      datasets: SISTEMAS.map(s => ({
+        label: NOMBRE_SISTEMA[s],
+        data: serie.map(g => g[s][campo]),
+        backgroundColor: COLOR_HEX[s], borderRadius: 6, hidden: sistemasOcultos.has(s),
+      })),
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -329,16 +327,18 @@ function graficarAnual(id, campo, formateador){
   });
 }
 
-// 5 y 6. Donas de participación
+// 3. Dona de participación en valor vendido, por sistema
 function graficarDonut(id, campo){
   const filas = filasBase();
-  const totales = { SAE: 0, FRV: 0 };
-  filas.forEach(f => { totales[f.sistema] += campo === 'valor_total' ? Number(f.valor_total) : f.cantidad; });
+  const totales = {};
+  SISTEMAS.forEach(s => { totales[s] = 0; });
+  filas.forEach(f => { if (f.sistema in totales) totales[f.sistema] += campo === 'valor_total' ? Number(f.valor_total) : f.cantidad; });
+  const total = SISTEMAS.reduce((s, sis) => s + totales[sis], 0);
   crearOActualizar(id, {
     type: 'doughnut',
     data: {
-      labels: ['SAE', 'FRV'],
-      datasets: [{ data: [totales.SAE, totales.FRV], backgroundColor: [COLOR_HEX.SAE, COLOR_HEX.FRV], borderWidth: 0, hoverOffset: 6 }],
+      labels: SISTEMAS.map(s => NOMBRE_SISTEMA[s]),
+      datasets: [{ data: SISTEMAS.map(s => totales[s]), backgroundColor: SISTEMAS.map(s => COLOR_HEX[s]), borderWidth: 0, hoverOffset: 6 }],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -346,7 +346,6 @@ function graficarDonut(id, campo){
       plugins: {
         legend: { position: 'bottom' },
         tooltip: { callbacks: { label: ctx => {
-          const total = totales.SAE + totales.FRV;
           const v = ctx.parsed;
           const pct = total ? (v/total)*100 : 0;
           return `${ctx.label}: ${campo === 'valor_total' ? fmtMoneda(v) : fmtNumero(v)} (${fmtPct(pct)})`;
@@ -356,67 +355,12 @@ function graficarDonut(id, campo){
   });
 }
 
-// 7. SAE: folios vs unidades por año (ignora el filtro de medida y de sistema)
-function graficarSaeMedida(){
-  const filas = filasBase({ soloSistemas: ['SAE'], ignorarOcultos: true, ignorarMedida: true });
-  const acc = new Map();
-  filas.forEach(f => {
-    if (!acc.has(f.anio)) acc.set(f.anio, { folio: 0, unidad: 0 });
-    if (f.medida === 'folio' || f.medida === 'unidad') acc.get(f.anio)[f.medida] += f.cantidad;
-  });
-  const anios = [...acc.keys()].sort();
-  crearOActualizar('chart-sae-medida', {
-    type: 'bar',
-    data: {
-      labels: anios.map(String),
-      datasets: [
-        { label: 'Folios', data: anios.map(a => acc.get(a).folio), backgroundColor: COLOR_HEX.SAE, borderRadius: 6 },
-        { label: 'Unidades', data: anios.map(a => acc.get(a).unidad), backgroundColor: '#8fb4e6', borderRadius: 6 },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: { y: { ...ejeNumero, grid: gridSuave }, x: { grid: { display: false } } },
-    },
-  });
-}
-
-// 8. Variación % mes contra mes anterior (combinado, sin histórico)
-function graficarVariacion(){
-  const serie = agruparPorPeriodo(filasBase({ ignorarAnio: true, ignorarMes: true, incluirHistorico: false }))
-    .map(g => ({ ...g, combinado: g.SAE.valor_total + g.FRV.valor_total }));
-  const variaciones = serie.map((g, i) => {
-    if (i === 0 || !serie[i-1].combinado) return null;
-    return ((g.combinado - serie[i-1].combinado) / serie[i-1].combinado) * 100;
-  });
-  crearOActualizar('chart-variacion', {
-    type: 'line',
-    data: {
-      labels: serie.map(g => `${NOMBRES_MES_CORTO[g.mes]} ${String(g.anio).slice(2)}`),
-      datasets: [{
-        label: 'Variación %', data: variaciones,
-        borderColor: '#1a5bbf', backgroundColor: 'rgba(26,91,191,.12)', fill: true, tension: .25,
-        pointBackgroundColor: variaciones.map(v => v == null ? '#9aa8c4' : (v >= 0 ? '#1a7f37' : '#b42318')),
-        pointRadius: 3, spanGaps: true,
-      }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: { y: { ticks: { callback: v => v + '%' }, grid: gridSuave }, x: { grid: { display: false } } },
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ctx.parsed.y == null ? 'Sin dato previo' : `${ctx.parsed.y >= 0 ? '+' : ''}${fmtPct(ctx.parsed.y)}` } },
-      },
-    },
-  });
-}
-
-// 9. Top 6 meses por valor vendido (barra horizontal, sin histórico)
+// 4. Top 5 meses por valor vendido combinado (barra horizontal, sin histórico)
 function graficarTopMeses(){
   const serie = agruparPorPeriodo(filasBase({ incluirHistorico: false }))
-    .map(g => ({ ...g, combinado: g.SAE.valor_total + g.FRV.valor_total }))
+    .map(g => ({ ...g, combinado: sumaSistemas(g, 'valor_total') }))
     .sort((a, b) => b.combinado - a.combinado)
-    .slice(0, 6)
+    .slice(0, 5)
     .sort((a, b) => a.combinado - b.combinado);
   crearOActualizar('chart-top-meses', {
     type: 'bar',
@@ -433,73 +377,6 @@ function graficarTopMeses(){
   });
 }
 
-// 10. Combo valor (barra) + cantidad (línea) por año
-function graficarComboAnual(){
-  const serie = agruparPorAnio(filasBase())
-    .map(g => ({ anio: g.anio, valor: g.SAE.valor_total + g.FRV.valor_total, cantidad: g.SAE.cantidad + g.FRV.cantidad }));
-  crearOActualizar('chart-combo-anual', {
-    type: 'bar',
-    data: {
-      labels: serie.map(g => String(g.anio)),
-      datasets: [
-        { type: 'bar', label: 'Valor vendido', data: serie.map(g => g.valor), backgroundColor: 'rgba(26,91,191,.75)', borderRadius: 6, yAxisID: 'y' },
-        { type: 'line', label: 'Cantidad vendida', data: serie.map(g => g.cantidad), borderColor: '#c77700', backgroundColor: '#c77700', tension: .3, yAxisID: 'y1', pointRadius: 4 },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        y: { position: 'left', ...ejeMoneda, grid: gridSuave },
-        y1: { position: 'right', ...ejeNumero, grid: { display: false } },
-        x: { grid: { display: false } },
-      },
-    },
-  });
-}
-
-// 11. FRV histórico vs. reciente
-function graficarFrvHistorico(){
-  const h = calcularHistoricoFRV();
-  crearOActualizar('chart-frv-historico', {
-    type: 'bar',
-    data: {
-      labels: ['Valor vendido', 'Bienes vendidos'],
-      datasets: [
-        { label: 'Histórico acumulado', data: [h.valorHist, h.cantidadHist], backgroundColor: '#e3b26b', borderRadius: 6 },
-        { label: 'Detectado en tiempo real', data: [h.valorRec, h.cantidadRec], backgroundColor: COLOR_HEX.FRV, borderRadius: 6 },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: { y: { grid: gridSuave }, x: { grid: { display: false } } },
-      plugins: { tooltip: { callbacks: { label: ctx => ctx.dataIndex === 0 ? `${ctx.dataset.label}: ${fmtMoneda(ctx.parsed.y)}` : `${ctx.dataset.label}: ${fmtNumero(ctx.parsed.y)}` } } },
-    },
-  });
-}
-
-function construirTabla(){
-  const filas = filasBase();
-  const body = document.getElementById('tabla-body');
-  body.innerHTML = filas
-    .slice()
-    .sort((a,b) => a.anio - b.anio || (a.mes||0) - (b.mes||0) || a.sistema.localeCompare(b.sistema))
-    .map((f, i) => {
-      const color = f.sistema === 'SAE' ? 'var(--serie-sae)' : 'var(--serie-frv)';
-      const medidaTexto = f.medida === 'total' ? 'Bienes (FRV)' : (f.medida === 'unidad' ? 'Unidades' : 'Folios');
-      const retraso = Math.min(i, 15) * 20;
-      return `
-      <tr class="fila-in" style="animation-delay:${retraso}ms">
-        <td><span class="tabla-sistema" style="--col:${color}"><span class="dot"></span>${f.sistema}</span></td>
-        <td>${f.anio}</td>
-        <td>${f.mes ? NOMBRES_MES[f.mes] : '—'}</td>
-        <td><span class="tabla-medida">${medidaTexto}</span></td>
-        <td class="tabla-cantidad">${fmtNumero(f.cantidad)}</td>
-        <td class="tabla-valor">${fmtMoneda(f.valor_total)}${f.es_acumulado_historico ? ' <span class="tabla-historico">histórico</span>' : ''}</td>
-      </tr>
-    `;
-    }).join('');
-}
-
 function construirFiltroAnio(){
   const sel = document.getElementById('filtro-anio');
   const anios = [...new Set(datosCompletos.map(f => f.anio))].sort();
@@ -513,17 +390,9 @@ function renderizarTodo(){
   construirInsights();
   construirKPIs();
   graficarEvolucionValor();
-  graficarEvolucionCantidad();
   graficarAnual('chart-anual-valor', 'valor_total', fmtMonedaCorta);
-  graficarAnual('chart-anual-cantidad', 'cantidad', fmtNumero);
   graficarDonut('chart-donut-valor', 'valor_total');
-  graficarDonut('chart-donut-cantidad', 'cantidad');
-  graficarSaeMedida();
-  graficarVariacion();
   graficarTopMeses();
-  graficarComboAnual();
-  graficarFrvHistorico();
-  construirTabla();
 }
 
 async function cargar(){
@@ -554,13 +423,6 @@ async function cargar(){
   }
 }
 
-document.getElementById('btn-toggle-tabla').addEventListener('click', () => {
-  const wrap = document.getElementById('tabla-wrap');
-  const visible = wrap.style.display !== 'none';
-  wrap.style.display = visible ? 'none' : 'block';
-  document.getElementById('btn-toggle-tabla').textContent = visible ? 'Ver tabla detallada' : 'Ocultar tabla';
-});
-
 document.getElementById('filtro-anio').addEventListener('change', (ev) => {
   anioFiltro = ev.target.value;
   renderizarTodo();
@@ -576,8 +438,9 @@ document.getElementById('sistema-toggle').addEventListener('click', (ev) => {
   if (!btn) return;
   const valor = btn.dataset.sistema;
   sistemasOcultos.clear();
-  if (valor === 'SAE') sistemasOcultos.add('FRV');
-  if (valor === 'FRV') sistemasOcultos.add('SAE');
+  if (valor !== 'todos'){
+    SISTEMAS.forEach(s => { if (s !== valor) sistemasOcultos.add(s); });
+  }
   document.querySelectorAll('#sistema-toggle .vista-btn').forEach(b => b.classList.toggle('activo', b === btn));
   renderizarTodo();
 });
