@@ -156,6 +156,123 @@ def calcular_sae():
     return resultado
 
 
+# ── SUBASTAS: se calcula en vivo contra la base "intranet", combinando
+#    LEGACY (mst_subastas + mst_subastas_pujas) y Actibid/Polybid
+#    (polybid.auctions + polybid.auction_bids vía la tabla puente
+#    polibid_subastas_v2) ────────────────────────────────────────────────
+#
+# Metodologia verificada manualmente el 2026-09-03 contra ambos sistemas:
+#   - Cada subasta ganada se resuelve a UN solo FMI: el del inmueble
+#     mismo (tipo INMUEBLE) o el del inmueble "padre" del grupo (tipo
+#     GRUPO_INMUEBLE / UNIDAD) -- asi nunca se cuenta un garaje o
+#     deposito por separado si ya esta incluido en la venta del grupo.
+#   - Se excluyen subastas con estado CANCELADA (LEGACY) o que no
+#     lleguen a "FINISHED" (Actibid), y toda fila donde el inmueble
+#     tenga la bandera mst_inmuebles.test = true (datos de prueba).
+#   - En Actibid, se exige que la subasta este vinculada a un inmueble
+#     real via polibid_subastas_v2 (pv.id IS NOT NULL) -- esto excluye
+#     automaticamente el ruido de pruebas ("Subasta Rapida", "DEMO...",
+#     subastas repetidas del mismo inmueble en el periodo de pruebas
+#     ene-mar 2026) sin necesidad de listar cada titulo a mano.
+#   - Si un mismo inmueble tiene mas de una subasta ganada (p.ej. una
+#     puja con un valor claramente anomalo seguida de una re-subasta
+#     real), se usa la de fecha de cierre MAS RECIENTE como la venta
+#     valida -- confirmado con los casos reales 370-527439 y
+#     50N-20184713 encontrados en esta auditoria.
+#   - A diferencia de "SAE", esta consulta NO depende de
+#     mst_inmuebles.estado_id: se basa en que exista una puja ganadora
+#     real, porque se detecto un bug de sincronizacion donde el
+#     inmueble se queda en estado SUBASTA_FINALIZADA sin llegar nunca a
+#     VENDIDO, y otros casos donde una venta ganada fue despublicada o
+#     devuelta a estados anteriores sin dejar registro del motivo. La
+#     puja ganadora real es la fuente de verdad, no el estado actual.
+#   - LIMITACION CONOCIDA: no incluye ventas cerradas sin ninguna puja
+#     registrada (un puñado de casos historicos de 2025 donde el valor
+#     se tomo manualmente de la ficha del inmueble) -- esos requieren
+#     revision manual y no se pueden detectar solo con esta consulta.
+
+def calcular_subastas():
+    if not psycopg2:
+        log("psycopg2 no está instalado — no se puede consultar la base intranet.")
+        return {}
+    if not INTRANET_DB_HOST or not INTRANET_DB_PASSWORD:
+        log("Faltan variables INTRANET_DB_* — se omite el cálculo de SUBASTAS.")
+        return {}
+
+    conn = psycopg2.connect(
+        host=INTRANET_DB_HOST,
+        port=INTRANET_DB_PORT,
+        dbname=INTRANET_DB_NAME,
+        user=INTRANET_DB_USER,
+        password=INTRANET_DB_PASSWORD,
+        sslmode="require",
+        connect_timeout=15,
+    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                WITH legacy AS (
+                    SELECT
+                        i.numero_matricula AS fmi,
+                        MAX(p.monto) AS valor,
+                        s.fecha_fin AS fecha_cierre
+                    FROM public.mst_subastas s
+                    JOIN public.mst_subastas_pujas p ON p.auction_id = s.id
+                    LEFT JOIN public.mst_inmuebles i_ind
+                        ON s.tipo_subasta = 'INMUEBLE' AND i_ind.id = s.objeto_id
+                    LEFT JOIN public.mst_inmuebles_grupos ig
+                        ON s.tipo_subasta = 'GRUPO_INMUEBLE' AND ig.grupo_id = s.objeto_id AND ig.es_padre
+                    LEFT JOIN public.mst_inmuebles i_grp ON i_grp.id = ig.inmueble_id
+                    JOIN public.mst_inmuebles i ON i.id = COALESCE(i_ind.id, i_grp.id)
+                    WHERE s.estado <> 'CANCELADA'
+                      AND COALESCE(i.test, false) = false
+                    GROUP BY i.numero_matricula, s.id, s.fecha_fin
+                ),
+                actibid AS (
+                    SELECT
+                        i.numero_matricula AS fmi,
+                        ab.amount AS valor,
+                        a.end_date AS fecha_cierre
+                    FROM polybid.auctions a
+                    JOIN polybid.auction_bids ab ON ab.auction_id = a.id AND ab.status = 'WINNING'
+                    JOIN public.polibid_subastas_v2 pv ON pv.auction_id = a.id
+                    LEFT JOIN public.mst_inmuebles i_ind ON i_ind.id = pv.inmueble_id
+                    LEFT JOIN public.mst_inmuebles_grupos ig ON ig.grupo_id = pv.grupo_id AND ig.es_padre
+                    LEFT JOIN public.mst_inmuebles i_grp ON i_grp.id = ig.inmueble_id
+                    JOIN public.mst_inmuebles i ON i.id = COALESCE(i_ind.id, i_grp.id)
+                    WHERE a.status = 'FINISHED'
+                      AND COALESCE(i.test, false) = false
+                ),
+                todas AS (
+                    SELECT * FROM legacy
+                    UNION ALL
+                    SELECT * FROM actibid
+                ),
+                por_propiedad AS (
+                    SELECT DISTINCT ON (fmi) fmi, valor, fecha_cierre
+                    FROM todas
+                    ORDER BY fmi, fecha_cierre DESC
+                )
+                SELECT
+                    EXTRACT(YEAR FROM fecha_cierre)::int AS anio,
+                    EXTRACT(MONTH FROM fecha_cierre)::int AS mes,
+                    COUNT(*) AS cantidad,
+                    SUM(valor) AS valor_total
+                FROM por_propiedad
+                GROUP BY anio, mes
+                ORDER BY anio, mes;
+            """)
+            filas = cur.fetchall()
+    finally:
+        conn.close()
+
+    resultado = {}
+    for anio, mes, cantidad, valor_total in filas:
+        resultado[(anio, mes)] = {"cantidad": cantidad, "valor_total": float(valor_total or 0)}
+    log(f"SUBASTAS: {resultado}")
+    return resultado
+
+
 # ── FRV: se calcula desde data.json + el seguimiento propio en Supabase ─
 
 def _num(valor_texto):
@@ -284,6 +401,15 @@ def main():
     sae = calcular_sae()
     if sae:
         guardar_resultado("SAE", sae)
+
+    try:
+        subastas = calcular_subastas()
+        if subastas:
+            guardar_resultado("SUBASTAS", subastas)
+    except Exception as e:
+        # No dejamos que un problema en SUBASTAS tumbe el resto del cron
+        # (SAE ya se guardo arriba, y FRV todavia tiene que correr abajo).
+        log(f"SUBASTAS: fallo el calculo, se omite esta corrida. Detalle: {e}")
 
     frv = calcular_frv()
     if frv:
