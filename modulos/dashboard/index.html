@@ -7,23 +7,26 @@
 <link rel="icon" type="image/png" href="/portal/public/logos/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="src/css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
     <div>
-      <div class="brand-eyebrow">Área Comercial</div>
+      <div class="brand-eyebrow">Área Comercial · Panel Ejecutivo</div>
       <h1 class="brand-title">Estadísticas de Ventas</h1>
-      <p class="brand-sub">Folios y unidades vendidas en SAE y FRV, por año y mes</p>
+      <p class="brand-sub">Estado de ventas de SAE y FRV de un vistazo — folios, unidades y valor, por año y mes</p>
     </div>
-    <button class="btn-tabla" id="btn-toggle-tabla">Ver tabla</button>
+    <button class="btn-tabla" id="btn-toggle-tabla">Ver tabla detallada</button>
   </div>
 </header>
 
 <main>
   <div id="estado-carga">Cargando datos…</div>
   <div id="contenido" style="display:none;">
+
+    <section class="insights-banner" id="insights-banner"></section>
 
     <section class="stat-grid" id="stat-grid"></section>
 
@@ -51,10 +54,11 @@
         </select>
       </div>
       <div class="filtro-grupo filtro-grupo-vista">
-        <label>Ver por</label>
-        <div class="vista-toggle" id="vista-toggle">
-          <button type="button" class="vista-btn activo" data-vista="anio">Año</button>
-          <button type="button" class="vista-btn" data-vista="mes">Mes</button>
+        <label>Sistema</label>
+        <div class="vista-toggle" id="sistema-toggle">
+          <button type="button" class="vista-btn activo" data-sistema="todos">Todos</button>
+          <button type="button" class="vista-btn" data-sistema="SAE">SAE</button>
+          <button type="button" class="vista-btn" data-sistema="FRV">FRV</button>
         </div>
       </div>
       <div class="filtro-grupo filtro-grupo-vista">
@@ -64,33 +68,83 @@
           <button type="button" class="vista-btn" data-medida="unidad">Unidades</button>
         </div>
       </div>
-      <div class="filtro-hint">Haz clic en "SAE" o "FRV" en la leyenda de cualquier gráfica para mostrar/ocultar esa serie.</div>
     </section>
 
-    <section class="chart-card chart-card-donut">
-      <div class="chart-head">
-        <h2>Distribución de lo vendido (SAE vs FRV)</h2>
-      </div>
-      <div class="donut-layout">
-        <div id="donut-chart"></div>
-        <div id="donut-detalle" class="donut-detalle"></div>
-      </div>
-    </section>
+    <section class="charts-grid" id="charts-grid">
 
-    <section class="chart-card">
-      <div class="chart-head">
-        <h2>Folios / unidades vendidas</h2>
-        <div class="legend" id="legend-cantidad"></div>
-      </div>
-      <div class="chart-body" id="chart-cantidad"></div>
-    </section>
+      <article class="chart-card span-2">
+        <div class="chart-head">
+          <h2>Evolución mensual — valor vendido</h2>
+          <p class="chart-sub">SAE vs. FRV, excluye el bloque histórico acumulado de FRV para no distorsionar la tendencia</p>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-evolucion-valor"></canvas></div>
+      </article>
 
-    <section class="chart-card">
-      <div class="chart-head">
-        <h2>Valor total vendido (COP)</h2>
-        <div class="legend" id="legend-valor"></div>
-      </div>
-      <div class="chart-body" id="chart-valor"></div>
+      <article class="chart-card span-2">
+        <div class="chart-head">
+          <h2>Evolución mensual — cantidad vendida</h2>
+          <p class="chart-sub">Folios/unidades (SAE) y bienes (FRV), sin el bloque histórico de FRV</p>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-evolucion-cantidad"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head"><h2>Valor vendido por año</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="chart-anual-valor"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head"><h2>Cantidad vendida por año</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="chart-anual-cantidad"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head"><h2>Participación en valor vendido</h2></div>
+        <div class="chart-canvas-wrap chart-canvas-wrap-donut"><canvas id="chart-donut-valor"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head"><h2>Participación en cantidad vendida</h2></div>
+        <div class="chart-canvas-wrap chart-canvas-wrap-donut"><canvas id="chart-donut-cantidad"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head">
+          <h2>SAE: folios vs. unidades por año</h2>
+          <p class="chart-sub">Una unidad puede agrupar varios folios vendidos juntos</p>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-sae-medida"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head">
+          <h2>Variación % mes contra mes anterior</h2>
+          <p class="chart-sub">Valor vendido combinado, sin el bloque histórico de FRV</p>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-variacion"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head"><h2>Top 6 meses con mayor valor vendido</h2></div>
+        <div class="chart-canvas-wrap"><canvas id="chart-top-meses"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head">
+          <h2>Valor vs. cantidad por año</h2>
+          <p class="chart-sub">Combinado SAE + FRV según los sistemas activos</p>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-combo-anual"></canvas></div>
+      </article>
+
+      <article class="chart-card">
+        <div class="chart-head">
+          <h2>FRV: histórico acumulado vs. tiempo real</h2>
+          <p class="chart-sub">Lo ya monetizado antes de activar el panel, frente a lo detectado desde entonces</p>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-frv-historico"></canvas></div>
+      </article>
+
     </section>
 
     <p class="nota-frv">
@@ -117,8 +171,6 @@
   </div>
   <div id="estado-error" style="display:none;"></div>
 </main>
-
-<div id="tooltip" class="tooltip" role="tooltip"></div>
 
 <script src="src/js/app.js"></script>
 </body>
