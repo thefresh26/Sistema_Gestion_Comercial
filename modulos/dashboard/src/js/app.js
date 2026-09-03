@@ -211,11 +211,13 @@ function construirKPIs(){
   const momValor = calcularVariacion(timeline, 'combinadoValor');
   const momCantidad = calcularVariacion(timeline, 'combinadoCantidad');
 
+  const pctHist = calcularHistoricoFRV().pctHist;
+
   const tilesSistema = SISTEMAS.map((s, i) => `
     <div class="stat-tile fila-in ${sistemasOcultos.has(s) ? 'oculto' : ''}" style="animation-delay:${100 + i * 50}ms">
       <div class="stat-icon" style="background:${COLOR_BG[s]};color:${COLOR_HEX[s]}">${ICONOS_SISTEMA[s]}</div>
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX[s]}"></span>${NOMBRE_SISTEMA[s]} · Valor vendido</div>
-      <div class="stat-value" style="font-size:19px;">${fmtMonedaCorta(totales[s].valor_total)}</div>
+      <div class="stat-value" style="font-size:19px;" data-kpi="valor-${s}">${fmtMonedaCorta(totales[s].valor_total)}</div>
       <div class="stat-sub">${fmtPct(valorCombinado ? (totales[s].valor_total / valorCombinado) * 100 : 0)} del total combinado</div>
     </div>
   `).join('');
@@ -225,29 +227,37 @@ function construirKPIs(){
     <div class="stat-tile fila-in" style="animation-delay:0ms">
       <div class="stat-icon" style="background:#e8f0fc;color:var(--blue)">${ICONOS.dinero}</div>
       <div class="stat-label">Valor total vendido</div>
-      <div class="stat-value">${fmtMonedaCorta(valorCombinado)}</div>
+      <div class="stat-value" data-kpi="valor-total">${fmtMonedaCorta(valorCombinado)}</div>
       ${badgeTendencia(momValor)}
     </div>
     <div class="stat-tile fila-in" style="animation-delay:50ms">
       <div class="stat-icon" style="background:#e8f0fc;color:var(--blue)">${ICONOS.capas}</div>
       <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes + subastas vendidas</div>
-      <div class="stat-value">${fmtNumero(cantidadCombinada)}</div>
+      <div class="stat-value" data-kpi="cantidad-total">${fmtNumero(cantidadCombinada)}</div>
       ${badgeTendencia(momCantidad)}
     </div>
     ${tilesSistema}
     <div class="stat-tile fila-in" style="animation-delay:250ms">
       <div class="stat-icon" style="background:#eef2fb;color:var(--navy)">${ICONOS.ticket}</div>
       <div class="stat-label">Ticket promedio</div>
-      <div class="stat-value" style="font-size:19px;">${fmtMonedaCorta(ticketProm)}</div>
+      <div class="stat-value" style="font-size:19px;" data-kpi="ticket">${fmtMonedaCorta(ticketProm)}</div>
       <div class="stat-sub">valor / unidad vendida</div>
     </div>
     <div class="stat-tile fila-in" style="animation-delay:300ms">
       <div class="stat-icon" style="background:#fdf1e3;color:${COLOR_HEX.FRV}">${ICONOS.historial}</div>
       <div class="stat-label">FRV · Histórico vs. reciente</div>
-      <div class="stat-value" style="font-size:19px;">${fmtPct(calcularHistoricoFRV().pctHist)}</div>
+      <div class="stat-value" style="font-size:19px;" data-kpi="frv-hist-pct">${fmtPct(pctHist)}</div>
       <div class="stat-sub">del valor FRV es bloque histórico</div>
     </div>
   `;
+
+  // Anima cada número desde su valor anterior — se ejecuta después de insertar
+  // el HTML porque necesita los elementos ya en el DOM.
+  animarValor(grid.querySelector('[data-kpi="valor-total"]'), valorCombinado, fmtMonedaCorta);
+  animarValor(grid.querySelector('[data-kpi="cantidad-total"]'), cantidadCombinada, fmtNumero);
+  animarValor(grid.querySelector('[data-kpi="ticket"]'), ticketProm, fmtMonedaCorta);
+  animarValor(grid.querySelector('[data-kpi="frv-hist-pct"]'), pctHist, fmtPct);
+  SISTEMAS.forEach(s => animarValor(grid.querySelector(`[data-kpi="valor-${s}"]`), totales[s].valor_total, fmtMonedaCorta));
 }
 
 // ── Configuración común de Chart.js ──────────────────────────────────────
@@ -281,6 +291,29 @@ function crearOActualizar(id, config){
 const ejeMoneda = { ticks: { callback: v => fmtMonedaCorta(v) } };
 const ejeNumero = { ticks: { callback: v => fmtNumero(v) } };
 const gridSuave = { color: 'rgba(13,31,60,.06)' };
+
+// ── Animación de conteo para los números de las tarjetas KPI ─────────────
+// Anima de su valor anterior al nuevo cada vez que se filtra o se carga la
+// data, en vez de simplemente reemplazar el texto — se siente más vivo.
+const valoresAnterioresKPI = {};
+function animarValor(el, valorFinal, formateador){
+  if (!el) return;
+  const key = el.dataset.kpi;
+  if (REDUCIR_MOVIMIENTO || !key){ el.textContent = formateador(valorFinal); return; }
+  const valorInicial = key in valoresAnterioresKPI ? valoresAnterioresKPI[key] : 0;
+  valoresAnterioresKPI[key] = valorFinal;
+  if (valorInicial === valorFinal){ el.textContent = formateador(valorFinal); return; }
+  const duracion = 650;
+  const t0 = performance.now();
+  function paso(t){
+    const p = Math.min((t - t0) / duracion, 1);
+    const suavizado = 1 - Math.pow(1 - p, 3);
+    const actual = valorInicial + (valorFinal - valorInicial) * suavizado;
+    el.textContent = formateador(actual);
+    if (p < 1) requestAnimationFrame(paso);
+  }
+  requestAnimationFrame(paso);
+}
 
 // 1. Evolución mensual — valor, una serie por sistema activo
 function graficarEvolucionValor(){
