@@ -275,11 +275,27 @@ if (window.Chart){
 }
 
 function crearOActualizar(id, config){
-  if (charts[id]){
+  const aplicar = () => {
     charts[id].data = config.data;
     charts[id].options = config.options;
     charts[id].config.type = config.type;
     charts[id].update();
+  };
+  if (charts[id]){
+    // Da una pista visual de que algo cambió al filtrar: la gráfica se
+    // atenúa un instante y vuelve, en vez de saltar directo al dato nuevo.
+    const canvas = document.getElementById(id);
+    const wrap = canvas ? canvas.closest('.chart-canvas-wrap') : null;
+    if (wrap && !REDUCIR_MOVIMIENTO){
+      wrap.style.transition = 'opacity .18s ease';
+      wrap.style.opacity = '0.3';
+      setTimeout(() => {
+        aplicar();
+        wrap.style.opacity = '1';
+      }, 140);
+    } else {
+      aplicar();
+    }
     return charts[id];
   }
   const canvas = document.getElementById(id);
