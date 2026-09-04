@@ -237,7 +237,7 @@ function construirKPIs(){
     </div>
     <div class="stat-tile fila-in" style="animation-delay:50ms">
       <div class="stat-icon" style="background:#e8f0fc;color:var(--blue)">${ICONOS.capas}</div>
-      <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes vendidos</div>
+      <div class="stat-label">Inmuebles vendidos</div>
       <div class="stat-value" data-kpi="cantidad-total">${fmtNumero(cantidadCombinada)}</div>
     </div>
     ${tilesSistema}
