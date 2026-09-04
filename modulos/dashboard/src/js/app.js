@@ -276,10 +276,20 @@ if (window.Chart){
 
 function crearOActualizar(id, config){
   const aplicar = () => {
-    charts[id].data = config.data;
-    charts[id].options = config.options;
-    charts[id].config.type = config.type;
-    charts[id].update();
+    const chart = charts[id];
+    chart.data = config.data;
+    chart.options = config.options;
+    chart.config.type = config.type;
+    // Chart.js recuerda si cada serie está oculta por su cuenta (por índice,
+    // no por el dataset) desde que la gráfica se crea — no la vuelve a leer
+    // del campo `hidden` del dataset en cada update(). Sin esto, la serie
+    // que empezó visible se queda visible para siempre sin importar el
+    // filtro de Sistema.
+    config.data.datasets.forEach((ds, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta) meta.hidden = ds.hidden === true;
+    });
+    chart.update();
   };
   if (charts[id]){
     // Da una pista visual de que algo cambió al filtrar: la gráfica se
@@ -435,13 +445,22 @@ function construirFiltroAnio(){
   sel.value = anios.includes(Number(actual)) ? actual : 'todos';
 }
 
+// Corre cada paso aislado: si uno falla, los demás igual se ejecutan y
+// se ve el error en la consola en vez de quedar todo congelado en el
+// primer render (que es lo que pasaba antes: un error en la primera
+// gráfica cancelaba silenciosamente las que seguían en la lista).
+function pasoSeguro(nombre, fn){
+  try{ fn(); }
+  catch(e){ console.error(`[dashboard] Falló "${nombre}":`, e); }
+}
+
 function renderizarTodo(){
-  construirInsights();
-  construirKPIs();
-  graficarEvolucionValor();
-  graficarAnual('chart-anual-valor', 'valor_total', fmtMonedaCorta);
-  graficarDonut('chart-donut-valor', 'valor_total');
-  graficarTopMeses();
+  pasoSeguro('insights', construirInsights);
+  pasoSeguro('kpis', construirKPIs);
+  pasoSeguro('evolucion-valor', graficarEvolucionValor);
+  pasoSeguro('anual-valor', () => graficarAnual('chart-anual-valor', 'valor_total', fmtMonedaCorta));
+  pasoSeguro('donut-valor', () => graficarDonut('chart-donut-valor', 'valor_total'));
+  pasoSeguro('top-meses', graficarTopMeses);
 }
 
 async function cargar(){
