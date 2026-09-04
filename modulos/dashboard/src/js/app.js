@@ -213,12 +213,18 @@ function construirKPIs(){
 
   const pctHist = calcularHistoricoFRV().pctHist;
 
+  // "Folios"/"unidades" para SAE (según el filtro de medida); "bienes" para FRV.
+  const etiquetaCantidadSistema = { SAE: etiquetaMedida, FRV: 'bienes' };
+
   const tilesSistema = SISTEMAS.map((s, i) => `
     <div class="stat-tile fila-in ${sistemasOcultos.has(s) ? 'oculto' : ''}" style="animation-delay:${100 + i * 50}ms">
       <div class="stat-icon" style="background:${COLOR_BG[s]};color:${COLOR_HEX[s]}">${ICONOS_SISTEMA[s]}</div>
       <div class="stat-label"><span class="dot" style="background:${COLOR_HEX[s]}"></span>${NOMBRE_SISTEMA[s]} · Valor vendido</div>
       <div class="stat-value" style="font-size:19px;" data-kpi="valor-${s}">${fmtMonedaCorta(totales[s].valor_total)}</div>
-      <div class="stat-sub">${fmtPct(valorCombinado ? (totales[s].valor_total / valorCombinado) * 100 : 0)} del total combinado</div>
+      <div class="stat-sub">
+        <span data-kpi="cantidad-${s}">${fmtNumero(totales[s].cantidad)}</span> ${etiquetaCantidadSistema[s]} vendidos
+        · ${fmtPct(valorCombinado ? (totales[s].valor_total / valorCombinado) * 100 : 0)} del valor combinado
+      </div>
     </div>
   `).join('');
 
@@ -257,7 +263,10 @@ function construirKPIs(){
   animarValor(grid.querySelector('[data-kpi="cantidad-total"]'), cantidadCombinada, fmtNumero);
   animarValor(grid.querySelector('[data-kpi="ticket"]'), ticketProm, fmtMonedaCorta);
   animarValor(grid.querySelector('[data-kpi="frv-hist-pct"]'), pctHist, fmtPct);
-  SISTEMAS.forEach(s => animarValor(grid.querySelector(`[data-kpi="valor-${s}"]`), totales[s].valor_total, fmtMonedaCorta));
+  SISTEMAS.forEach(s => {
+    animarValor(grid.querySelector(`[data-kpi="valor-${s}"]`), totales[s].valor_total, fmtMonedaCorta);
+    animarValor(grid.querySelector(`[data-kpi="cantidad-${s}"]`), totales[s].cantidad, fmtNumero);
+  });
 }
 
 // ── Configuración común de Chart.js ──────────────────────────────────────
