@@ -115,7 +115,7 @@ function construirTablaUsuarios(){
         <td>${fmtFecha(u.ultimo_ingreso)}</td>
         <td>
           <div class="acciones">
-            <button class="btn-accion" data-accion="editar" data-id="${u.id}" data-nombre="${nombreMostrado}">Editar</button>
+            <button class="btn-accion" data-accion="editar" data-id="${u.id}" data-nombre="${nombreMostrado}" ${u.es_yo ? 'disabled title="No puedes editar tu propio usuario"' : ''}>Editar</button>
             ${u.deshabilitado
               ? `<button class="btn-accion exito" data-accion="habilitar" data-id="${u.id}" ${u.es_yo ? 'disabled' : ''}>Habilitar</button>`
               : `<button class="btn-accion peligro" data-accion="deshabilitar" data-id="${u.id}" ${u.es_yo ? 'disabled' : ''}>Deshabilitar</button>`

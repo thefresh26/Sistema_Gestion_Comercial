@@ -633,6 +633,8 @@ def admin_actualizar_usuario(user_id):
         detalle_log.append(f"rol -> {rol}")
 
     if "nombre" in body:
+        if es_yo:
+            return jsonify({"error": "No puedes modificar tu propio usuario"}), 400
         metadata_actual["nombre"] = (body["nombre"] or "").strip()
         metadata_cambio = True
         detalle_log.append(f"nombre -> {metadata_actual['nombre']}")
@@ -650,6 +652,8 @@ def admin_actualizar_usuario(user_id):
         detalle_log.append("cuenta deshabilitada" if body["deshabilitado"] else "cuenta habilitada")
 
     if body.get("password"):
+        if es_yo:
+            return jsonify({"error": "No puedes modificar tu propio usuario"}), 400
         if len(body["password"]) < 8:
             return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
         payload["password"] = body["password"]
