@@ -1,8 +1,8 @@
-const SISTEMAS = ['SAE', 'FRV', 'SUBASTAS'];
-const COLOR_HEX = { SAE: '#1a5bbf', FRV: '#c77700', SUBASTAS: '#6b46c1' };
-const COLOR_SUAVE = { SAE: 'rgba(26,91,191,.14)', FRV: 'rgba(199,119,0,.14)', SUBASTAS: 'rgba(107,70,193,.14)' };
-const COLOR_BG = { SAE: '#e8f0fc', FRV: '#fdf1e3', SUBASTAS: '#f1ecfb' };
-const NOMBRE_SISTEMA = { SAE: 'SAE', FRV: 'FRV', SUBASTAS: 'Subastas' };
+const SISTEMAS = ['SAE', 'FRV'];
+const COLOR_HEX = { SAE: '#1a5bbf', FRV: '#c77700' };
+const COLOR_SUAVE = { SAE: 'rgba(26,91,191,.14)', FRV: 'rgba(199,119,0,.14)' };
+const COLOR_BG = { SAE: '#e8f0fc', FRV: '#fdf1e3' };
+const NOMBRE_SISTEMA = { SAE: 'SAE', FRV: 'FRV' };
 const NOMBRES_MES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const NOMBRES_MES_CORTO = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -14,7 +14,7 @@ let datosCompletos = [];
 const sistemasOcultos = new Set();   // sistemas apagados por el segmentador "Sistema"
 let anioFiltro = 'todos';            // 'todos' o un año específico
 let mesFiltro = 'todos';             // 'todos' o un mes específico (1-12)
-let medidaFiltro = 'folio';          // 'folio' o 'unidad' — solo aplica a SAE; FRV y Subastas siempre usan 'total'
+let medidaFiltro = 'folio';          // 'folio' o 'unidad' — solo aplica a SAE; FRV siempre usa 'total'
 
 const charts = {};                   // instancias Chart.js vivas, por id de canvas
 
@@ -47,7 +47,7 @@ const ICONOS = {
   tendenciaAbajo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l7 7 4-4 7 7"></path><path d="M15 17h6v-6"></path></svg>',
   bombilla: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"></path><path d="M12 3a6 6 0 0 0-4 10.4c.6.5 1 1.3 1 2.1v.5h6v-.5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3Z"></path></svg>',
 };
-const ICONOS_SISTEMA = { SAE: ICONOS.capas, FRV: ICONOS.edificio, SUBASTAS: ICONOS.martillo };
+const ICONOS_SISTEMA = { SAE: ICONOS.capas, FRV: ICONOS.edificio };
 
 // ── Filtrado ─────────────────────────────────────────────────────────────
 // Devuelve las filas de datosCompletos según el filtro activo, con overrides
@@ -232,7 +232,7 @@ function construirKPIs(){
     </div>
     <div class="stat-tile fila-in" style="animation-delay:50ms">
       <div class="stat-icon" style="background:#e8f0fc;color:var(--blue)">${ICONOS.capas}</div>
-      <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes + subastas vendidas</div>
+      <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes vendidos</div>
       <div class="stat-value" data-kpi="cantidad-total">${fmtNumero(cantidadCombinada)}</div>
       ${badgeTendencia(momCantidad)}
     </div>
@@ -274,6 +274,10 @@ if (window.Chart){
   Chart.defaults.plugins.tooltip.cornerRadius = 8;
 }
 
+// Temporizadores de actualización pendientes (el "fundido" de 140ms antes de
+// aplicar los datos nuevos), por id de gráfica — para poder cancelarlos.
+const actualizacionesPendientes = {};
+
 function crearOActualizar(id, config){
   const aplicar = () => {
     const chart = charts[id];
@@ -296,12 +300,27 @@ function crearOActualizar(id, config){
     // atenúa un instante y vuelve, en vez de saltar directo al dato nuevo.
     const canvas = document.getElementById(id);
     const wrap = canvas ? canvas.closest('.chart-canvas-wrap') : null;
+    // Si ya había una actualización de esta misma gráfica esperando a
+    // aplicarse (el usuario cambió el filtro varias veces rápido), se
+    // cancela: sin esto, la más vieja podía aplicarse DESPUÉS de la nueva
+    // y dejar la gráfica mostrando datos de un filtro que ya no está activo.
+    if (actualizacionesPendientes[id]){
+      clearTimeout(actualizacionesPendientes[id]);
+      delete actualizacionesPendientes[id];
+    }
     if (wrap && !REDUCIR_MOVIMIENTO){
       wrap.style.transition = 'opacity .18s ease';
       wrap.style.opacity = '0.3';
-      setTimeout(() => {
-        aplicar();
-        wrap.style.opacity = '1';
+      actualizacionesPendientes[id] = setTimeout(() => {
+        delete actualizacionesPendientes[id];
+        // Si algo dentro de aplicar() lanza un error (dato inesperado,
+        // config incompleta), el finally garantiza que la gráfica nunca se
+        // quede pegada en el opacity 0.3 del fundido — antes se veía como si
+        // "los datos se hubieran quedado estáticos" porque el canvas nunca
+        // volvía a pintarse.
+        try{ aplicar(); }
+        catch(e){ console.error(`[dashboard] Falló crearOActualizar("${id}")`, e); }
+        finally{ wrap.style.opacity = '1'; }
       }, 140);
     } else {
       aplicar();

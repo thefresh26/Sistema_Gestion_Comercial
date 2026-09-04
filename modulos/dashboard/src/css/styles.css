@@ -18,7 +18,6 @@
      acento de la interfaz para no confundir "dato" con "adorno". */
   --serie-sae: var(--blue);
   --serie-frv: var(--gold-deep);
-  --serie-subastas: #6b46c1;
 
   /* Semántica de tendencia: en ventas, subir es bueno. */
   --up:#1a7f37;

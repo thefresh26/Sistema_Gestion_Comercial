@@ -16,7 +16,7 @@
     <div>
       <div class="brand-eyebrow">Área Comercial · Panel Ejecutivo</div>
       <h1 class="brand-title">Estadísticas de Ventas</h1>
-      <p class="brand-sub">Estado de ventas de SAE, FRV y Subastas de un vistazo — cantidad y valor, por año y mes</p>
+      <p class="brand-sub">Estado de ventas de SAE y FRV de un vistazo — cantidad y valor, por año y mes</p>
     </div>
   </div>
 </header>
@@ -54,7 +54,6 @@
           <button type="button" class="vista-btn activo" data-sistema="todos">Todos</button>
           <button type="button" class="vista-btn" data-sistema="SAE">SAE</button>
           <button type="button" class="vista-btn" data-sistema="FRV">FRV</button>
-          <button type="button" class="vista-btn" data-sistema="SUBASTAS">Subastas</button>
         </div>
       </div>
       <div class="filtro-grupo filtro-grupo-vista">
@@ -75,7 +74,7 @@
       <article class="chart-card span-2 fila-in" style="animation-delay:0ms">
         <div class="chart-head">
           <h2>Evolución mensual — valor vendido</h2>
-          <p class="chart-sub">SAE, FRV y Subastas — excluye el bloque histórico acumulado de FRV para no distorsionar la tendencia</p>
+          <p class="chart-sub">SAE y FRV — excluye el bloque histórico acumulado de FRV para no distorsionar la tendencia</p>
         </div>
         <div class="chart-canvas-wrap"><canvas id="chart-evolucion-valor"></canvas></div>
       </article>
@@ -108,10 +107,6 @@
       mostrado para FRV es un bloque histórico acumulado (todo lo que ya estaba
       monetizado al activar este panel); de ahí en adelante, cada período refleja
       lo detectado como nuevo en ese momento real.
-      <br><strong>Nota sobre Subastas:</strong> se cuenta el inmueble más recientemente
-      cerrado con puja ganadora (LEGACY o Actibid); algunos inmuebles que pertenecen a un
-      grupo sin "padre" marcado en la base de datos pueden quedar fuera hasta que se
-      corrija ese dato.
     </p>
 
   </div>
