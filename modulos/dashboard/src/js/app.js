@@ -209,7 +209,6 @@ function construirKPIs(){
   const timeline = agruparPorPeriodo(filasBase({ ignorarAnio: true, ignorarMes: true, incluirHistorico: false }))
     .map(g => ({ ...g, combinadoValor: sumaSistemas(g, 'valor_total'), combinadoCantidad: sumaSistemas(g, 'cantidad') }));
   const momValor = calcularVariacion(timeline, 'combinadoValor');
-  const momCantidad = calcularVariacion(timeline, 'combinadoCantidad');
 
   const pctHist = calcularHistoricoFRV().pctHist;
 
@@ -240,7 +239,6 @@ function construirKPIs(){
       <div class="stat-icon" style="background:#e8f0fc;color:var(--blue)">${ICONOS.capas}</div>
       <div class="stat-label">${etiquetaMedida.charAt(0).toUpperCase()+etiquetaMedida.slice(1)} + bienes vendidos</div>
       <div class="stat-value" data-kpi="cantidad-total">${fmtNumero(cantidadCombinada)}</div>
-      ${badgeTendencia(momCantidad)}
     </div>
     ${tilesSistema}
     <div class="stat-tile fila-in" style="animation-delay:250ms">
