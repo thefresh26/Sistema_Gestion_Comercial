@@ -120,6 +120,7 @@ function construirTablaUsuarios(){
               ? `<button class="btn-accion exito" data-accion="habilitar" data-id="${u.id}" ${u.es_yo ? 'disabled' : ''}>Habilitar</button>`
               : `<button class="btn-accion peligro" data-accion="deshabilitar" data-id="${u.id}" ${u.es_yo ? 'disabled' : ''}>Deshabilitar</button>`
             }
+            <button class="btn-accion peligro" data-accion="eliminar" data-id="${u.id}" data-usuario="${u.usuario}" ${u.es_yo ? 'disabled title="No puedes eliminar tu propio usuario"' : ''}>Eliminar</button>
           </div>
         </td>
       </tr>
@@ -142,6 +143,7 @@ function construirTablaUsuarios(){
       if(accion === 'editar') abrirModalClave(btn.dataset.id, btn.dataset.nombre);
       if(accion === 'deshabilitar') cambiarEstado(btn.dataset.id, true);
       if(accion === 'habilitar') cambiarEstado(btn.dataset.id, false);
+      if(accion === 'eliminar') eliminarUsuario(btn.dataset.id, btn.dataset.usuario);
     });
   });
 }
@@ -221,6 +223,27 @@ async function cambiarEstado(id, deshabilitado){
     const cuerpo = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(cuerpo.error || 'No se pudo actualizar el estado.');
     mostrarToast(deshabilitado ? 'Usuario deshabilitado.' : 'Usuario habilitado.');
+    await cargarUsuarios();
+  }catch(e){
+    mostrarToast(e.message, true);
+  }
+}
+
+async function eliminarUsuario(id, usuario){
+  // A diferencia de deshabilitar (reversible), esto borra la cuenta de
+  // forma permanente -- confirmacion mas fuerte, pidiendo escribir el
+  // nombre de usuario exacto para evitar un clic accidental.
+  const escrito = prompt(`Esto elimina la cuenta "${usuario}" de forma PERMANENTE (no se puede deshacer).\n\nSi de verdad quieres eliminarla, escribe el usuario exacto para confirmar:`);
+  if(escrito === null) return;
+  if(escrito.trim() !== usuario){
+    mostrarToast('No coincide con el usuario -- no se eliminó nada.', true);
+    return;
+  }
+  try{
+    const r = await fetch(`/api/admin/usuarios/${id}`, { method: 'DELETE' });
+    const cuerpo = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(cuerpo.error || 'No se pudo eliminar el usuario.');
+    mostrarToast('Usuario eliminado.');
     await cargarUsuarios();
   }catch(e){
     mostrarToast(e.message, true);

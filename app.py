@@ -680,6 +680,40 @@ def admin_actualizar_usuario(user_id):
     return jsonify({"ok": True})
 
 
+@app.route("/api/admin/usuarios/<user_id>", methods=["DELETE"])
+@requires_modulo("admin")
+def admin_eliminar_usuario(user_id):
+    # Se trae el usuario primero -- para el log y para no dejar borrar la
+    # propia cuenta (mismo criterio que deshabilitar/editar arriba).
+    r = requests.get(
+        f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
+        headers=_supabase_admin_headers(),
+        timeout=15,
+    )
+    if r.status_code != 200:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    actual = r.json()
+    email_actual = actual.get("email")
+    if email_actual == session.get("email"):
+        return jsonify({"error": "No puedes eliminar tu propia cuenta"}), 400
+
+    # A diferencia de "deshabilitar" (reversible, solo bloquea el ingreso),
+    # esto borra la cuenta de Supabase Auth de forma permanente -- por eso
+    # el frontend pide una confirmacion mas fuerte antes de llamar esto.
+    r2 = requests.delete(
+        f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
+        headers=_supabase_admin_headers(),
+        timeout=15,
+    )
+    if r2.status_code not in (200, 204):
+        cuerpo = r2.json() if r2.content else {}
+        detalle = cuerpo.get("msg") or cuerpo.get("error_description") or "Error al eliminar el usuario"
+        return jsonify({"error": detalle}), 400
+
+    registrar_log("admin", session.get("email"), "eliminar_usuario", email_actual, obtener_ip_cliente())
+    return jsonify({"ok": True})
+
+
 @app.route("/api/admin/directorio")
 @requires_modulo("admin")
 def admin_directorio():
