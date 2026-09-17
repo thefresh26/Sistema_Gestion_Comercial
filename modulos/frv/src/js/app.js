@@ -392,7 +392,7 @@ window.addEventListener('resize', ()=>{
 
 loadData();
 
-/* Cierre de sesión automático por inactividad (10 min), igual que en
+/* Cierre de sesión automático por inactividad (30 min), igual que en
    los visores de SAE. Cualquier click/tecla/scroll reinicia el reloj. */
 async function cerrarSesionFRV(motivo){
   try{
@@ -412,7 +412,7 @@ async function cerrarSesionFRV(motivo){
 }
 
 (function(){
-  var MINUTOS_INACTIVIDAD = 5;
+  var MINUTOS_INACTIVIDAD = 30;
   var t = null;
   function reiniciar(){
     if(t) clearTimeout(t);

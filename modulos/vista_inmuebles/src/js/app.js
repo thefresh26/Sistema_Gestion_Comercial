@@ -5,7 +5,7 @@
 let currentRole = null;
 
 /* ── CIERRE DE SESIÓN AUTOMÁTICO POR INACTIVIDAD ── */
-const MINUTOS_INACTIVIDAD = 5;
+const MINUTOS_INACTIVIDAD = 30;
 let temporizadorInactividad = null;
 
 function iniciarControlInactividad(){
