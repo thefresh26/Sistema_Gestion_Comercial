@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('apc-theme');document.documentElement.setAttribute('data-theme', t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Permisos</title>
 <link rel="icon" type="image/png" href="/portal/public/logos/favicon.png">
@@ -20,6 +21,10 @@
       <p class="brand-sub">Crea usuarios y decide qué módulos puede ver cada uno, según su rol</p>
     </div>
     <div class="header-botones">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar entre modo claro y oscuro" title="Cambiar tema">
+        <svg class="icon-sol" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-luna" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <button class="btn-secundario-header" id="btn-sincronizar-nombres" title="Copia el nombre desde Microsoft 365 para los usuarios que aún no tengan uno guardado">Copiar nombres de Microsoft 365</button>
       <button class="btn-nuevo" id="btn-nuevo-usuario">+ Nuevo usuario</button>
     </div>
@@ -103,5 +108,13 @@
 <div id="toast" class="toast"></div>
 
 <script src="src/js/app.js"></script>
+<script>
+document.getElementById('theme-toggle').addEventListener('click', function(){
+  var root = document.documentElement;
+  var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  try{ localStorage.setItem('apc-theme', next); }catch(e){}
+});
+</script>
 </body>
 </html>
