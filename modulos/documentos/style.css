@@ -279,6 +279,29 @@ select:focus, input[type=text]:focus {
 [data-theme="dark"] .badge.completo { color: #5fe3ac; }
 [data-theme="dark"] .badge.con_observaciones { color: #f28b7d; }
 
+.btn-sm {
+  padding: 7px 16px;
+  font-size: 12.5px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.download-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  animation: entrada-subir .35s var(--ease-overshoot) both;
+}
+
 /* ── TARJETAS (misma barra de acento que el resto del sistema) ──── */
 .card {
   position: relative;

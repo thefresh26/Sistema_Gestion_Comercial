@@ -30,6 +30,7 @@ import requests
 from functools import wraps
 from flask import Flask, send_from_directory, request, session, jsonify, render_template, send_file, redirect, url_for
 import io
+import zipfile
 from dotenv import load_dotenv
 
 from core import db as db_documentos
@@ -918,6 +919,47 @@ def documentos_descargar(doc_id: int):
         mimetype=documento["mime_type"],
         as_attachment=True,
         download_name=documento["nombre_archivo"],
+    )
+
+
+@app.route("/documentos/descargar-varios")
+@requires_modulo("documentos")
+def documentos_descargar_varios():
+    """Descarga en un solo .zip varios documentos ya generados, para
+    cuando la búsqueda trajo muchos casos a la vez -- así no hay que
+    entrar caso por caso a descargar uno por uno."""
+    ids = [int(x) for x in request.args.get("ids", "").split(",") if x.strip().isdigit()]
+    if not ids:
+        return "No se especificó ningún documento para descargar.", 400
+
+    buffer = io.BytesIO()
+    nombres_usados: set[str] = set()
+    incluidos = 0
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for doc_id in ids:
+            documento = db_documentos.obtener_documento(doc_id)
+            if not documento:
+                continue
+            nombre = documento["nombre_archivo"]
+            base, ext = os.path.splitext(nombre)
+            candidato, n = nombre, 1
+            while candidato in nombres_usados:
+                candidato = f"{base}_{n}{ext}"
+                n += 1
+            nombres_usados.add(candidato)
+            zf.writestr(candidato, documento["contenido"])
+            incluidos += 1
+
+    if incluidos == 0:
+        return "Ninguno de los documentos solicitados existe.", 404
+
+    buffer.seek(0)
+    registrar_log("documentos", session.get("email"), "descargar_varios", f"{incluidos} documento(s)", obtener_ip_cliente())
+    return send_file(
+        buffer,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="documentos.zip",
     )
 
 

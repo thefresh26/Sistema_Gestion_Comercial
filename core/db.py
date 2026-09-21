@@ -86,22 +86,35 @@ def buscar_casos(termino: str, limite: int = 25, tipo_salida: str | None = None)
     arrendatario (búsqueda de texto). Si se pasa `tipo_salida`, solo
     devuelve casos que ya tengan al menos un documento generado de ese
     tipo (para que el filtro de la interfaz tenga sentido); los casos
-    sin ningún documento generado siempre aparecen, para poder crearlos."""
+    sin ningún documento generado siempre aparecen, para poder crearlos.
+
+    También trae, para cada caso, el id y nombre del documento generado
+    MÁS RECIENTE de `tipo_salida` (si existe) -- así la interfaz puede
+    ofrecer un botón "Descargar" directo en el resultado de búsqueda, sin
+    tener que entrar a la ficha del caso."""
     termino = (termino or "").strip()
     if not termino:
         return []
     with get_conn() as conn:
         filas = conn.execute(
             """
-            SELECT fmi, territorial, tipo_bien, direccion, arrendatario_nombre,
-                   id_siglas, id_numero, id_ciudad, estado, pendientes,
-                   actualizado_en
-            FROM casos
-            WHERE (fmi ILIKE %(patron)s OR arrendatario_nombre ILIKE %(patron)s)
-            ORDER BY actualizado_en DESC
+            SELECT c.fmi, c.territorial, c.tipo_bien, c.direccion, c.arrendatario_nombre,
+                   c.id_siglas, c.id_numero, c.id_ciudad, c.estado, c.pendientes,
+                   c.actualizado_en, d.id AS documento_id, d.nombre_archivo AS documento_nombre
+            FROM casos c
+            LEFT JOIN LATERAL (
+                SELECT doc.id, doc.nombre_archivo
+                FROM documentos doc
+                WHERE doc.fmi = c.fmi AND doc.tipo = 'documento_generado'
+                  AND (%(tipo_salida)s IS NULL OR doc.tipo_salida = %(tipo_salida)s)
+                ORDER BY doc.subido_en DESC
+                LIMIT 1
+            ) d ON true
+            WHERE (c.fmi ILIKE %(patron)s OR c.arrendatario_nombre ILIKE %(patron)s)
+            ORDER BY c.actualizado_en DESC
             LIMIT %(limite)s
             """,
-            {"patron": f"%{termino}%", "limite": limite},
+            {"patron": f"%{termino}%", "limite": limite, "tipo_salida": tipo_salida},
         ).fetchall()
         return list(filas)
 
