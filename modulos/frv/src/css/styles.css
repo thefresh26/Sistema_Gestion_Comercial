@@ -595,3 +595,27 @@
       scroll-behavior:auto !important;
     }
   }
+
+/* ── Scroll suave + sin barra visible ────────────────────────────── */
+html{
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+html::-webkit-scrollbar{ display:none; width:0; height:0; }
+
+body{ transition:background-color .35s ease, color .35s ease; }
+
+/* ── TEMA OSCURO (controlado desde el topbar del Portal) ─────────── */
+[data-theme="dark"]{
+  --paper:#0a1628;
+  --paper-2:#132a4a;
+  --line:rgba(234,241,251,.14);
+  --ink:#eaf1fb;
+  --ink-soft:rgba(234,241,251,.62);
+  --ok-bg:rgba(47,125,79,.22);
+  --no-bg:rgba(177,74,59,.22);
+  --gold-pale:rgba(245,168,0,.14);
+}
+[data-theme="dark"] thead th{background:rgba(234,241,251,.06);}
+[data-theme="dark"] tbody tr:nth-child(even){background:rgba(234,241,251,.03);}

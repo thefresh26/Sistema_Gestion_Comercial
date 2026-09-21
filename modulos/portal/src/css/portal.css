@@ -328,3 +328,20 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
     scroll-behavior:auto !important;
   }
 }
+
+/* ── Botón de tema claro/oscuro (único, vive en el topbar del Portal
+   y controla el tema de los 5 visores/módulos a la vez) ───────────── */
+.theme-toggle{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:9px;
+  background:rgba(234,241,251,.08);
+  border:1px solid rgba(234,241,251,.18);
+  color:var(--text);
+  cursor:pointer;
+  transition:background .3s ease, border-color .3s ease, transform .2s var(--ease-overshoot);
+}
+.theme-toggle:hover{background:rgba(234,241,251,.16);}
+.theme-toggle:active{transform:scale(.9); transition-duration:.1s;}
+.theme-toggle .icon-luna{display:none;}
+[data-theme="dark"] .theme-toggle .icon-sol{display:none;}
+[data-theme="dark"] .theme-toggle .icon-luna{display:block;}

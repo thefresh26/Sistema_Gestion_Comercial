@@ -17,6 +17,33 @@ const TAB_DESCRIPCIONES = {
 
 let sesionActual = null;
 
+// ─── Tema claro/oscuro compartido ───────────────────────────────────
+// Un solo boton en el topbar del Portal controla el tema de TODO el
+// sistema: el propio Portal y los 5 visores (iframes) de los modulos.
+// Cada modulo ya lee 'apc-theme' de localStorage al cargar (evita el
+// parpadeo), asi que aqui solo hace falta: (1) guardar la preferencia
+// y (2) empujarla en caliente a los visores que ya estan abiertos.
+const THEME_KEY = 'apc-theme';
+const IDS_VISORES = ['frame-sae', 'frame-frv', 'frame-vista_inmuebles', 'frame-dashboard', 'frame-admin'];
+
+function temaGuardado(){
+  try{ return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; }catch(e){ return 'light'; }
+}
+
+function aplicarTemaEnVisor(iframeEl, tema){
+  try{
+    if(iframeEl && iframeEl.contentDocument && iframeEl.contentDocument.documentElement){
+      iframeEl.contentDocument.documentElement.setAttribute('data-theme', tema);
+    }
+  }catch(e){ /* iframe de otro origen o aun sin cargar: no pasa nada */ }
+}
+
+function aplicarTemaGlobal(tema){
+  document.documentElement.setAttribute('data-theme', tema);
+  try{ localStorage.setItem(THEME_KEY, tema); }catch(e){}
+  IDS_VISORES.forEach(id => aplicarTemaEnVisor(document.getElementById(id), tema));
+}
+
 async function cargarSesion(){
   const r = await fetch('/api/session');
   const s = await r.json();
@@ -75,26 +102,25 @@ function activarTab(nombre){
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tab === nombre));
 
   // Carga perezosa de los iframes: solo se pide el módulo la primera vez
-  // que se abre su pestaña.
-  if(nombre === 'sae'){
-    const f = document.getElementById('frame-sae');
-    if(!f.src) f.src = '/sae/';
-  }
-  if(nombre === 'frv'){
-    const f = document.getElementById('frame-frv');
-    if(!f.src) f.src = '/frv/';
-  }
-  if(nombre === 'vista_inmuebles'){
-    const f = document.getElementById('frame-vista_inmuebles');
-    if(!f.src) f.src = '/vista_inmuebles/';
-  }
-  if(nombre === 'dashboard'){
-    const f = document.getElementById('frame-dashboard');
-    if(!f.src) f.src = '/dashboard/';
-  }
-  if(nombre === 'admin'){
-    const f = document.getElementById('frame-admin');
-    if(!f.src) f.src = '/admin/';
+  // que se abre su pestaña. Cuando termina de cargar, se le aplica el
+  // tema vigente (por si el usuario cambio de tema con este visor aun
+  // sin abrir).
+  const mapaRutas = {
+    sae: ['frame-sae', '/sae/'],
+    frv: ['frame-frv', '/frv/'],
+    vista_inmuebles: ['frame-vista_inmuebles', '/vista_inmuebles/'],
+    dashboard: ['frame-dashboard', '/dashboard/'],
+    admin: ['frame-admin', '/admin/'],
+  };
+  if(mapaRutas[nombre]){
+    const [id, ruta] = mapaRutas[nombre];
+    const f = document.getElementById(id);
+    if(!f.src){
+      f.addEventListener('load', () => aplicarTemaEnVisor(f, temaGuardado()));
+      f.src = ruta;
+    }else{
+      aplicarTemaEnVisor(f, temaGuardado());
+    }
   }
 }
 
@@ -163,6 +189,11 @@ window.addEventListener('message', (ev)=>{
 
 ['l-user','l-pass'].forEach(id=>{
   document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+});
+
+aplicarTemaGlobal(temaGuardado());
+document.getElementById('theme-toggle').addEventListener('click', function(){
+  aplicarTemaGlobal(temaGuardado() === 'dark' ? 'light' : 'dark');
 });
 
 cargarSesion();

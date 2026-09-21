@@ -155,3 +155,42 @@ main{flex:1;padding:28px 32px;max-width:980px;margin:0 auto;width:100%;}
     scroll-behavior:auto !important;
   }
 }
+
+/* ── Scroll suave + sin barra visible ────────────────────────────── */
+html{
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+html::-webkit-scrollbar{ display:none; width:0; height:0; }
+
+/* ── Transición suave al cambiar de tema (el boton vive en el Portal) */
+body, .top-card, .sec, .login-card, .res-table, #sb{
+  transition:background-color .35s ease, color .35s ease, border-color .35s ease;
+}
+
+/* ── TEMA OSCURO (controlado desde el topbar del Portal) ─────────── */
+[data-theme="dark"]{
+  --off:#0a1628;
+  --white:#132a4a;
+  --border:rgba(234,241,251,.14);
+  --text:#eaf1fb;
+  --muted:rgba(234,241,251,.62);
+}
+[data-theme="dark"] .fmi-num,
+[data-theme="dark"] .stitle,
+[data-theme="dark"] .f .vm,
+[data-theme="dark"] .login-title,
+[data-theme="dark"] .res-table td.vm{
+  color:var(--text);
+}
+[data-theme="dark"] .top-card,
+[data-theme="dark"] .sec{
+  box-shadow:0 2px 12px rgba(0,0,0,.35);
+}
+[data-theme="dark"] .res-table tr.row-empty td{background:rgba(240,123,0,.12);}
+[data-theme="dark"] #sb.loading{background:rgba(26,91,191,.14);}
+[data-theme="dark"] #sb.error{background:rgba(224,53,53,.14);}
+[data-theme="dark"] #sb.empty{background:rgba(245,168,0,.14);}
+[data-theme="dark"] .ei-list{background:var(--white); box-shadow:0 8px 24px rgba(0,0,0,.4);}
+[data-theme="dark"] .ei-list li{border-bottom-color:rgba(234,241,251,.08);}
