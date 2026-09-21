@@ -446,3 +446,20 @@ header{padding-bottom:2px;}
   0%, 100%{ box-shadow:0 0 0 0 rgba(245,168,0,.35); }
   50%{ box-shadow:0 0 0 8px rgba(245,168,0,0); }
 }
+
+/* ── FIX: la tarjeta del modal ("Nuevo usuario"/"Editar usuario")
+   estaba fija en blanco -- nunca cambiaba con el tema -- pero sus
+   campos de texto sí usan variables que cambian con el tema. Resultado
+   en oscuro: cajas de input oscuras flotando dentro de una tarjeta
+   blanca ("panel raro"). Se hace que la tarjeta también cambie. */
+[data-theme="dark"] .modal-card{
+  background:var(--white);
+  box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
+[data-theme="dark"] .modal-card label{ color:var(--muted); }
+[data-theme="dark"] .modal-card input,
+[data-theme="dark"] .modal-card select{
+  background:rgba(234,241,251,.05);
+  border-color:var(--border);
+  color:var(--text);
+}
