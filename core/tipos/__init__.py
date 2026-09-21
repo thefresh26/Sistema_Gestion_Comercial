@@ -12,29 +12,22 @@ Para agregar un tipo nuevo:
 """
 from __future__ import annotations
 
-from . import acta_arrendamiento
 from . import certificado_dd
-from . import acta_alcance
 from . import acta_subasta
 from . import informe_subasta
 
+# Acta de Arrendamiento y Acta de Alcance quedaron fuera a propósito: son
+# procesos que el usuario sigue haciendo manualmente (fuera de este
+# sistema), no dependen de ninguna base de datos que este módulo pueda
+# consultar solo. El código sigue en core/tipos/acta_arrendamiento.py y
+# core/tipos/acta_alcance.py por si se quieren reactivar más adelante --
+# solo hace falta volver a importarlos y agregarlos aquí abajo.
+
 TIPOS = {
-    "acta_arrendamiento": {
-        "etiqueta": "Acta de Arrendamiento",
-        "descripcion": "Comité de arrendamiento: aprueba el arrendatario y el canon de un inmueble.",
-        "modulo": acta_arrendamiento,
-        "disponible": True,
-    },
     "certificado_dd": {
         "etiqueta": "Certificado de Resultado DD",
         "descripcion": "Certificado de debida diligencia sobre un tercero (persona o empresa). Se busca por cédula, NIT, FMI, código de subasta o de unidad.",
         "modulo": certificado_dd,
-        "disponible": True,
-    },
-    "acta_alcance": {
-        "etiqueta": "Acta de Alcance",
-        "descripcion": "Acta de alcance de un proceso o paquete de bienes. Requiere subir primero el Acta vieja del proceso.",
-        "modulo": acta_alcance,
         "disponible": True,
     },
     "acta_subasta": {
