@@ -150,6 +150,16 @@ select, input[type=text] {
   outline: none;
   transition: border-color .3s ease, box-shadow .3s ease, background-color .35s ease, color .35s ease;
 }
+/* El fondo de arriba (var(--card)) es semi-transparente en modo oscuro,
+   pensado para tarjetas -- pero el navegador no respeta esa transparencia
+   en la ventana emergente de opciones del <select>, así que el texto casi
+   blanco quedaba sobre un fondo que no contrastaba. Se le da a las
+   opciones un fondo sólido explícito (--off, que ya es sólido en los dos
+   temas) para que la lista se vea bien siempre. */
+option {
+  background: var(--off);
+  color: var(--text);
+}
 select:focus, input[type=text]:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(26,168,221,.18);
