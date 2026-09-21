@@ -17,13 +17,13 @@ computador con esa sesión abierta -- un servidor en la nube no tiene (ni
 puede tener de forma segura) la sesión de Microsoft de nadie iniciada,
 así que esa parte no se puede scrapear automáticamente aquí.
 
-En su lugar, este módulo trata las 2 capturas de Clarity como
-DOCUMENTOS FUENTE que se suben a mano (igual que el Acta de Alcance pide
-subir el Acta vieja): el usuario entra a Clarity con la ventana que ya
-usa siempre, toma esas 2 capturas y las sube en la ficha del caso antes
-de generar el Informe. Las cifras de sesiones (que en el script original
-también salían de esa misma sesión de Clarity) se piden como campos
-editables en vez de leerse automáticamente.
+En su lugar, este módulo llama a la API oficial de exportación de datos
+de Clarity (ver `core/clarity.py`) con un token de proyecto (no una
+contraseña personal) para traer las 3 cifras de sesiones automáticamente
+-- ya no hace falta subir ninguna captura de pantalla ni escribirlas a
+mano. Esa API solo cubre el tráfico de los últimos 1-3 días; si el
+Informe se genera después de esa ventana, el documento se genera de
+todas formas, solo que sin esas 3 cifras (quedan como "—").
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ import time
 import zipfile
 from io import BytesIO
 
-from core import db
+from core import clarity, db
 
 RAIZ_PROYECTO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUTA_PLANTILLA = os.path.join(RAIZ_PROYECTO, "word_templates", "INFORME_SUBASTA.docx")
@@ -44,18 +44,19 @@ MESES_ABR = {
     "jul": "07", "ago": "08", "sep": "09", "sept": "09", "oct": "10", "nov": "11", "dic": "12",
 }
 
-TIPOS_DOCUMENTO_FUENTE = {
-    "clarity_resumen": "Captura de Clarity — Resumen del dashboard (imagen)",
-    "clarity_paginas": "Captura de Clarity — Tarjeta 'Páginas principales' (imagen)",
-}
+# Ya no se piden capturas de pantalla de Clarity: las 3 cifras de
+# sesiones se traen solas desde la API de Clarity (ver core/clarity.py).
+TIPOS_DOCUMENTO_FUENTE: dict[str, str] = {}
 
+# Los 3 campos de Clarity ya no son editables a mano (los llena la API) --
+# solo quedan estos por si el scraping/base de datos no encuentra algo.
 CAMPOS_EDITABLES = [
-    ("clarity_sesiones_totales", "Sesiones totales (Clarity)"),
-    ("clarity_bots_excluidos", "Sesiones de bot excluidas (Clarity)"),
-    ("clarity_sesiones_url", "Sesiones de la URL del inmueble (Clarity)"),
     ("nombre_ganador", "Oferente ganador"),
     ("fecha_inicio", "Fecha de apertura"),
     ("fecha_fin", "Fecha de cierre"),
+    ("clarity_sesiones_totales", "Sesiones totales (Clarity) -- solo si la API no las trajo"),
+    ("clarity_bots_excluidos", "Sesiones de bot excluidas (Clarity) -- solo si la API no las trajo"),
+    ("clarity_sesiones_url", "Sesiones de la URL del inmueble (Clarity) -- solo si la API no las trajo"),
 ]
 
 FILA_FMI = '<w:tr w:rsidR="004335EC" w14:paraId="7346AD35" w14:textId="77777777" w:rsidTr="001D7A74"><w:tc><w:tcPr><w:tcW w:w="800" w:type="pct"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/></w:tcBorders><w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/><w:hideMark/></w:tcPr><w:p w14:paraId="3405DB84" w14:textId="0D6A24F0" w:rsidR="004335EC" w:rsidRDefault="003F62F4" w:rsidP="001E7040"><w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>##fmi##</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="726" w:type="pct"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/></w:tcBorders><w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/><w:hideMark/></w:tcPr><w:p w14:paraId="5FC3148B" w14:textId="0F16A98C" w:rsidR="00711FCF" w:rsidRDefault="003F62F4" w:rsidP="0042080F"><w:pPr><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>##direccion##</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="951" w:type="pct"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/></w:tcBorders><w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/><w:hideMark/></w:tcPr><w:p w14:paraId="19DECA7C" w14:textId="344F554D" w:rsidR="00401EB7" w:rsidRPr="004E5742" w:rsidRDefault="003F62F4" w:rsidP="00401EB7"><w:pPr><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>##ciudad##</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="795" w:type="pct"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/></w:tcBorders><w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/><w:hideMark/></w:tcPr><w:p w14:paraId="19DECA7C" w14:textId="344F554D" w:rsidR="00401EB7" w:rsidRPr="004E5742" w:rsidRDefault="003F62F4" w:rsidP="00401EB7"><w:pPr><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>##departamento##</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="889" w:type="pct"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/></w:tcBorders><w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/><w:hideMark/></w:tcPr><w:p w14:paraId="130AAB20" w14:textId="33B82877" w:rsidR="004335EC" w:rsidRDefault="003F62F4"><w:pPr><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>##tipo_inmueble##</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="839" w:type="pct"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="6" w:space="0" w:color="DDDDDD"/></w:tcBorders><w:tcMar><w:top w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar><w:vAlign w:val="center"/><w:hideMark/></w:tcPr><w:p w14:paraId="1B53A752" w14:textId="01C72209" w:rsidR="004335EC" w:rsidRDefault="003F62F4" w:rsidP="00672C46"><w:pPr><w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr><w:t>##area##</w:t></w:r></w:p></w:tc></w:tr>'
@@ -761,7 +762,7 @@ def _insertar_imagen_en_placeholder(archivos, doc_xml, placeholder, pil_img, anc
     if idx < 0:
         return doc_xml
     if pil_img is None:
-        return doc_xml.replace(marca, "(imagen de Clarity no disponible -- súbela como documento fuente)")
+        return doc_xml.replace(marca, "(cifras de tráfico tomadas de la API de Clarity)")
 
     buf = BytesIO()
     pil_img.save(buf, format="PNG")
@@ -912,21 +913,28 @@ def generar(fmi: str) -> tuple[bytes, str, list[str]]:
     correcciones = db.obtener_correcciones(fmi)
 
     pendientes: list[str] = []
-    if not db.obtener_ultimo_documento(fmi, "clarity_resumen"):
-        pendientes.append(
-            "Captura de Clarity (Resumen): no se ha subido -- entra a Clarity con tu sesión "
-            "de siempre, toma la captura y súbela como documento fuente."
-        )
-    if not db.obtener_ultimo_documento(fmi, "clarity_paginas"):
-        pendientes.append(
-            "Captura de Clarity (Páginas principales): no se ha subido -- súbela como "
-            "documento fuente igual que la de Resumen."
-        )
+
+    # Cifras de Clarity: si el usuario no las corrigió a mano, se intenta
+    # traerlas solas desde la API de Clarity (ver core/clarity.py). Si la
+    # API no tiene token configurado o no devuelve datos (por ejemplo, ya
+    # pasaron más de 1-3 días desde que hubo tráfico), el documento se
+    # genera igual, solo que sin esas 3 cifras.
     if "clarity_sesiones_totales" not in correcciones:
-        pendientes.append(
-            "Sesiones totales / bots excluidos / sesiones de la URL (Clarity): revisa el "
-            "dashboard y complétalos a mano en 'Editar campos'."
-        )
+        metricas = clarity.obtener_metricas_clarity(datos.get("url_pagina"))
+        if metricas:
+            correcciones = {
+                **correcciones,
+                "clarity_sesiones_totales": str(metricas["sesiones_totales"]),
+                "clarity_bots_excluidos": str(metricas["bots_excluidos"]),
+                "clarity_sesiones_url": str(metricas["sesiones_url"]),
+            }
+        else:
+            pendientes.append(
+                "Sesiones de Clarity: la API no devolvió datos (sin token configurado, o ya "
+                "pasó la ventana de 1-3 días que cubre) -- si hacen falta, complétalas a mano "
+                "en 'Editar campos'."
+            )
+
     if datos["nombre_ganador"] == "—":
         pendientes.append("Oferente ganador: no se encontró en la base de datos, revisar a mano.")
     if datos["fecha_inicio"] == "—" or datos["fecha_fin"] == "—":
