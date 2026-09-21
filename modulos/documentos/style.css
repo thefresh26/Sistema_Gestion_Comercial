@@ -206,3 +206,9 @@ select, input[type=text] {
 .pendientes li:last-child { border-bottom: none; }
 
 a.link { color: var(--accent); text-decoration: none; font-size: 13px; }
+
+.ayuda-masiva {
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 8px 2px;
+}

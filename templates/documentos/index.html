@@ -19,7 +19,7 @@
   </div>
 
   <div class="search-box">
-    <input type="text" id="buscador" placeholder="Ej. 001-389120 o Cindy Murillo" autofocus>
+    <input type="text" id="buscador" placeholder="Ej. 001-389120, 001-389121, 024-20085 (o un nombre)" autofocus>
     <button class="btn" onclick="buscar()">Buscar</button>
   </div>
 
@@ -27,31 +27,74 @@
 </div>
 
 <script>
+function dividirTerminos(texto) {
+  return texto
+    .split(/[,;\n\/]+/)
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
+}
+
+async function buscarUnTermino(termino, tipo) {
+  const res = await fetch(`/api/documentos/buscar?q=${encodeURIComponent(termino)}&tipo=${encodeURIComponent(tipo)}`);
+  return res.json();
+}
+
+function filaResultado(c, tipo) {
+  const badge = c.estado || 'pendiente';
+  return `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(c.fmi)}">
+    <div><div class="fmi">${c.fmi}</div><div class="nombre">${c.arrendatario_nombre || 'Sin arrendatario'} · ${c.direccion || ''}</div></div>
+    <span class="badge ${badge}">${badge.replace('_', ' ')}</span>
+  </a>`;
+}
+
+function filaCasoNuevo(termino, tipo) {
+  return `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(termino)}">
+    <div><div class="fmi">${termino}</div><div class="nombre">Caso nuevo — clic para crearlo</div></div>
+  </a>`;
+}
+
 async function buscar() {
-  const q = document.getElementById('buscador').value.trim();
+  const textoOriginal = document.getElementById('buscador').value.trim();
   const tipo = document.getElementById('tipo-select').value;
   const cont = document.getElementById('resultados');
   cont.innerHTML = '';
-  if (!q) return;
-  const res = await fetch(`/api/documentos/buscar?q=${encodeURIComponent(q)}&tipo=${encodeURIComponent(tipo)}`);
-  const casos = await res.json();
-  if (casos.length === 0) {
-    cont.innerHTML = `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(q)}">
-      <div><div class="fmi">${q}</div><div class="nombre">Caso nuevo — clic para crearlo</div></div>
-    </a>`;
+  if (!textoOriginal) return;
+
+  const terminos = dividirTerminos(textoOriginal);
+
+  // Búsqueda de un solo término (nombre parcial o FMI): igual que antes,
+  // puede traer varios casos que coincidan.
+  if (terminos.length <= 1) {
+    const casos = await buscarUnTermino(textoOriginal, tipo);
+    if (casos.length === 0) {
+      cont.innerHTML = filaCasoNuevo(textoOriginal, tipo);
+    } else {
+      cont.innerHTML = casos.map(c => filaResultado(c, tipo)).join('');
+    }
     return;
   }
-  for (const c of casos) {
-    const badge = c.estado || 'pendiente';
-    cont.innerHTML += `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(c.fmi)}">
-      <div><div class="fmi">${c.fmi}</div><div class="nombre">${c.arrendatario_nombre || 'Sin arrendatario'} · ${c.direccion || ''}</div></div>
-      <span class="badge ${badge}">${badge.replace('_', ' ')}</span>
-    </a>`;
+
+  // Búsqueda masiva: varios FMI separados por coma, punto y coma, "/" o
+  // salto de línea -- uno por uno, y si alguno no existe se deja la fila
+  // de "caso nuevo" para poder crearlo igual con un clic.
+  cont.innerHTML = `<p class="ayuda-masiva">Buscando ${terminos.length} casos…</p>`;
+  const filasHtml = [];
+  for (const termino of terminos) {
+    const casos = await buscarUnTermino(termino, tipo);
+    const exacto = casos.find(c => c.fmi.toUpperCase() === termino.toUpperCase());
+    if (exacto) {
+      filasHtml.push(filaResultado(exacto, tipo));
+    } else if (casos.length > 0) {
+      filasHtml.push(casos.map(c => filaResultado(c, tipo)).join(''));
+    } else {
+      filasHtml.push(filaCasoNuevo(termino, tipo));
+    }
   }
+  cont.innerHTML = filasHtml.join('');
 }
 
 document.getElementById('buscador').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') buscar();
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); buscar(); }
 });
 </script>
 {% endblock %}
