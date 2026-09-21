@@ -1,13 +1,13 @@
 Flask==3.1.3
 gunicorn==26.2.0
 requests==2.34.2
-psycopg2-binary==2.9.12
+psycopg2-binary>=2.9.12
 
 # --- Módulo Documentos (generador de Actas, Certificados, etc.) ---
-psycopg[binary]==3.2.1
-python-docx==1.1.2
-pdfplumber==0.11.4
+psycopg[binary]>=3.2.1
+python-docx>=1.1.2
+pdfplumber>=0.11.4
 PyMuPDF>=1.24.9
-pytesseract==0.3.13
-Pillow==10.4.0
-python-dotenv==1.0.1
+pytesseract>=0.3.13
+Pillow>=10.4.0
+python-dotenv>=1.0.1
