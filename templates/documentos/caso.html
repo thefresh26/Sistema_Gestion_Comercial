@@ -25,35 +25,6 @@
   </div>
   {% endif %}
 
-  <div class="card">
-    <h2>Datos del caso</h2>
-    <div class="field-grid">
-      {% for campo, etiqueta in campos_editables %}
-      <div class="field">
-        <label>{{ etiqueta }}{% if campo in correcciones %} (corregido a mano){% endif %}</label>
-        <div class="value">{{ correcciones.get(campo) or caso.get(campo) or '—' }}</div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Corregir un dato a mano</h2>
-    <p style="color:var(--text-dim); font-size:13px; margin-top:-8px">
-      Si un dato quedó mal o el documento de origen es un escaneo sin texto, corrígelo aquí una sola vez —
-      queda guardado para todas las próximas veces que se genere este documento.
-    </p>
-    <form class="upload-form" method="post" action="{{ url_for('documentos_editar_correccion', tipo=tipo, fmi=caso.fmi) }}">
-      <select name="campo">
-        {% for campo, etiqueta in campos_editables %}
-        <option value="{{ campo }}">{{ etiqueta }}</option>
-        {% endfor %}
-      </select>
-      <input type="text" name="valor" placeholder="Valor correcto" style="flex:1; min-width:200px">
-      <button class="btn btn-secondary" type="submit">Guardar corrección</button>
-    </form>
-  </div>
-
   {% if tipos_documento_fuente %}
   <div class="card">
     <h2>Documentos de origen</h2>
@@ -82,12 +53,11 @@
   <div class="card">
     <h2>Documento generado</h2>
     {% if documentos_generados %}
-      {% for a in documentos_generados %}
+      {% set a = documentos_generados[0] %}
       <div class="doc-row">
         <div>{{ a.nombre_archivo }} — {{ a.subido_en.strftime('%d/%m/%Y %H:%M') }}</div>
         <a class="link" href="{{ url_for('documentos_descargar', doc_id=a.id) }}">Descargar</a>
       </div>
-      {% endfor %}
     {% else %}
       <p style="color:var(--text-dim); font-size:14px">Todavía no se ha generado este documento para el caso.</p>
     {% endif %}
