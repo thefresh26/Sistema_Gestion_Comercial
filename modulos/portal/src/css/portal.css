@@ -397,3 +397,23 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
   0%, 100%{ box-shadow:0 10px 20px -8px rgba(26,168,221,0.4), 0 0 0 0 rgba(26,168,221,.35); }
   50%{ box-shadow:0 10px 20px -8px rgba(26,168,221,0.4), 0 0 0 8px rgba(26,168,221,0); }
 }
+
+/* ── FIX: el fondo con cuadrícula + halos estaba calibrado solo para
+   tema oscuro (líneas casi blancas y halos muy tenues) -- en claro se
+   veía prácticamente en blanco liso ("muy seco"). Se le da una versión
+   propia con líneas tenues en tono navy (visibles sobre claro) y
+   halos de color más presentes. */
+[data-theme="light"] body{
+  background-image:
+    linear-gradient(rgba(11,42,74,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11,42,74,0.045) 1px, transparent 1px),
+    radial-gradient(ellipse 1000px 800px at 0% 0%, rgba(26,168,221,0.16) 0%, rgba(26,168,221,0) 60%),
+    radial-gradient(ellipse 1000px 800px at 100% 100%, rgba(245,166,35,0.14) 0%, rgba(245,166,35,0) 60%),
+    radial-gradient(ellipse 900px 700px at 50% 100%, rgba(26,184,122,0.07) 0%, rgba(26,184,122,0) 60%);
+}
+
+/* La tarjeta de login flota mejor con una sombra más marcada sobre el
+   fondo claro (antes estaba pensada para fondo oscuro). */
+[data-theme="light"] .login-card{
+  box-shadow:0 25px 60px -15px rgba(11,42,74,.22), 0 4px 16px rgba(11,42,74,.08);
+}
