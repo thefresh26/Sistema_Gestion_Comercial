@@ -217,14 +217,14 @@ def listar_documentos(fmi: str, tipo: str | None = None) -> list[dict]:
     with get_conn() as conn:
         if tipo:
             filas = conn.execute(
-                """SELECT id, fmi, tipo, nombre_archivo, mime_type, tamano_bytes, subido_en
+                """SELECT id, fmi, tipo, tipo_salida, nombre_archivo, mime_type, tamano_bytes, subido_en
                    FROM documentos WHERE fmi = %(fmi)s AND tipo = %(tipo)s
                    ORDER BY subido_en DESC""",
                 {"fmi": fmi, "tipo": tipo},
             ).fetchall()
         else:
             filas = conn.execute(
-                """SELECT id, fmi, tipo, nombre_archivo, mime_type, tamano_bytes, subido_en
+                """SELECT id, fmi, tipo, tipo_salida, nombre_archivo, mime_type, tamano_bytes, subido_en
                    FROM documentos WHERE fmi = %(fmi)s ORDER BY tipo, subido_en DESC""",
                 {"fmi": fmi},
             ).fetchall()
