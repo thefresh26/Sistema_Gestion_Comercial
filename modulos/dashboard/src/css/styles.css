@@ -355,3 +355,14 @@ body, .chart-card{ transition:background-color .35s ease, color .35s ease, borde
   background:linear-gradient(90deg, var(--blue), var(--yellow));
   opacity:.85;
 }
+
+/* ── Animaciones de entrada (respetan "reducir movimiento") ──────── */
+@keyframes entrada-subir{
+  from{ opacity:0; transform:translateY(16px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.stat-tile{ animation:entrada-subir .4s var(--ease-overshoot) both; }
+.stat-tile:nth-child(2){ animation-delay:.05s; }
+.stat-tile:nth-child(3){ animation-delay:.10s; }
+.stat-tile:nth-child(4){ animation-delay:.15s; }
+.chart-card{ animation:entrada-subir .45s .1s var(--ease-overshoot) both; }

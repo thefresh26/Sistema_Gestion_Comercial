@@ -376,3 +376,24 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
 }
 [data-theme="light"] .modulo-card h3{ color:#1a2340; }
 [data-theme="light"] .modulo-card p{ color:#6b7a99; }
+
+/* ── Animaciones de entrada (respetan "reducir movimiento") ──────── */
+.modulo-card{ animation:tab-fade-in .4s var(--ease-overshoot) both; }
+.modulo-card:nth-child(1){ animation-delay:0s; }
+.modulo-card:nth-child(2){ animation-delay:.05s; }
+.modulo-card:nth-child(3){ animation-delay:.10s; }
+.modulo-card:nth-child(4){ animation-delay:.15s; }
+.modulo-card:nth-child(5){ animation-delay:.20s; }
+.modulo-card:nth-child(6){ animation-delay:.25s; }
+
+/* Giro suave del ícono del botón de tema al cambiar */
+.theme-toggle svg{ transition:transform .4s var(--ease-overshoot); }
+.theme-toggle:active svg{ transform:rotate(-25deg) scale(.85); }
+
+/* Pulso invitando a iniciar sesión */
+.login-card button{ animation:pulso-suave 2.6s ease-in-out infinite; }
+.login-card button:hover, .login-card button:focus-visible{ animation:none; }
+@keyframes pulso-suave{
+  0%, 100%{ box-shadow:0 10px 20px -8px rgba(26,168,221,0.4), 0 0 0 0 rgba(26,168,221,.35); }
+  50%{ box-shadow:0 10px 20px -8px rgba(26,168,221,0.4), 0 0 0 8px rgba(26,168,221,0); }
+}

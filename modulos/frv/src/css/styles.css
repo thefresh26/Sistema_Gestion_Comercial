@@ -647,3 +647,12 @@ thead th{font-size:11.5px;}
   z-index:1;
 }
 [data-theme="dark"] .table-wrap{box-shadow:0 3px 14px rgba(0,0,0,.4);}
+
+/* ── Animaciones de entrada (respetan "reducir movimiento") ──────── */
+@keyframes entrada-subir{
+  from{ opacity:0; transform:translateY(16px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.brand-title{ animation:entrada-subir .5s var(--ease-overshoot) both; }
+.results-bar{ animation:entrada-subir .45s .05s var(--ease-overshoot) both; }
+.table-wrap{ animation:entrada-subir .45s .1s var(--ease-overshoot) both; }

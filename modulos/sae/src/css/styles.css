@@ -287,3 +287,29 @@ main{padding-top:34px;}
 .hero h1{ color:#eaf1fb; }
 .hero h1 span{ color:var(--yellow); }
 #l-btn{ color:#eaf1fb; }
+
+/* ── Animaciones de entrada (respetan "reducir movimiento", ver media
+   query al final del archivo) ───────────────────────────────────── */
+@keyframes entrada-subir{
+  from{ opacity:0; transform:translateY(16px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.hero-eyebrow{ animation:entrada-subir .5s var(--ease-overshoot) both; }
+.hero h1{ animation:entrada-subir .5s .06s var(--ease-overshoot) both; }
+.hero p{ animation:entrada-subir .5s .12s var(--ease-overshoot) both; }
+.search-card{ animation:entrada-subir .5s .18s var(--ease-overshoot) both; }
+
+.top-card{ animation:entrada-subir .45s var(--ease-overshoot) both; }
+.sec{ animation:entrada-subir .45s var(--ease-overshoot) both; }
+.sec:nth-of-type(2){ animation-delay:.06s; }
+.sec:nth-of-type(3){ animation-delay:.12s; }
+.sec:nth-of-type(4){ animation-delay:.18s; }
+
+/* El botón de consultar respira levemente para invitar al clic cuando
+   el campo está vacío (se detiene solo con hover/focus). */
+.sbtn{ animation:pulso-suave 2.4s ease-in-out infinite; }
+.sbtn:hover, .sbtn:focus-visible{ animation:none; }
+@keyframes pulso-suave{
+  0%, 100%{ box-shadow:0 0 0 0 rgba(245,168,0,.35); }
+  50%{ box-shadow:0 0 0 8px rgba(245,168,0,0); }
+}
