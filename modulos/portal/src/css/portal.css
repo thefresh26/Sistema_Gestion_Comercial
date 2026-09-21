@@ -345,3 +345,34 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
 .theme-toggle .icon-luna{display:none;}
 [data-theme="dark"] .theme-toggle .icon-sol{display:none;}
 [data-theme="dark"] .theme-toggle .icon-luna{display:block;}
+
+/* ── FIX: el topbar es una franja fija oscura en los dos temas (igual
+   que el hero/header de los demás módulos), así que su texto usa
+   colores fijos en vez de las variables --text/--muted (esas sí
+   cambian con el tema, y se reservan para el contenido del panel de
+   Inicio, no para el topbar). Antes, al pasar a tema claro, el texto
+   del topbar se volvía oscuro sobre un fondo que sigue oscuro y
+   desaparecía -- por eso el botón "no funcionaba" para el panel
+   principal. */
+.brand, .session-info b, .logout-link, .theme-toggle{ color:#eaf1fb; }
+.session-info{ color:rgba(234,241,251,.62); }
+
+/* ── TEMA CLARO para el contenido del Portal (panel de Inicio y
+   tarjetas de módulos) -- el topbar arriba se queda igual que ahora. */
+[data-theme="light"]{ --off:#f4f6fa; }
+[data-theme="light"] #panel-inicio h2,
+[data-theme="light"] .panel-externo h2{ color:#1a2340; }
+[data-theme="light"] #panel-inicio p,
+[data-theme="light"] .panel-externo p{ color:#6b7a99; }
+[data-theme="light"] .modulo-card{
+  background:#ffffff;
+  border-color:#dce3ef;
+  box-shadow:0 2px 10px rgba(13,31,60,.05);
+}
+[data-theme="light"] .modulo-card:hover{
+  background:#f8fafc;
+  border-color:rgba(245,166,35,.5);
+  box-shadow:0 14px 28px -12px rgba(13,31,60,.14);
+}
+[data-theme="light"] .modulo-card h3{ color:#1a2340; }
+[data-theme="light"] .modulo-card p{ color:#6b7a99; }

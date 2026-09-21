@@ -619,3 +619,15 @@ body{ transition:background-color .35s ease, color .35s ease; }
 }
 [data-theme="dark"] thead th{background:rgba(234,241,251,.06);}
 [data-theme="dark"] tbody tr:nth-child(even){background:rgba(234,241,251,.03);}
+
+/* ── Ajuste de legibilidad (misma fuente Manrope, tamaños más cómodos) */
+thead th{font-size:11.5px;}
+.td-nombre{font-size:14px;}
+.card-nombre{font-size:15.5px;}
+.card-valor{font-size:12.5px;}
+.results-bar{font-size:13px;}
+.empty-state h3{font-size:19px;}
+
+/* ── Pulido: leve elevación al pasar el mouse sobre las tarjetas ─── */
+.table-wrap{transition:box-shadow .32s ease, background-color .35s ease, border-color .35s ease;}
+[data-theme="dark"] .table-wrap{box-shadow:0 8px 24px rgba(0,0,0,.4);}

@@ -194,3 +194,36 @@ body, .top-card, .sec, .login-card, .res-table, #sb{
 [data-theme="dark"] #sb.empty{background:rgba(245,168,0,.14);}
 [data-theme="dark"] .ei-list{background:var(--white); box-shadow:0 8px 24px rgba(0,0,0,.4);}
 [data-theme="dark"] .ei-list li{border-bottom-color:rgba(234,241,251,.08);}
+
+/* ── Ajuste de legibilidad (misma fuente Manrope, tamaños más cómodos
+   para lectura prolongada de datos) ─────────────────────────────── */
+.hero-eyebrow{font-size:11px;}
+.hero h1{font-size:30px;}
+.hero p{font-size:14px; line-height:1.5;}
+.search-label{font-size:11px;}
+.shint{font-size:12px; line-height:1.5;}
+.tc-label{font-size:11px;}
+.fmi-num{font-size:26px;}
+.tc-sub{font-size:13px;}
+.stitle{font-size:12px;}
+.f label{font-size:10.5px;}
+.f .v{font-size:14px; line-height:1.55;}
+.f .vm{font-size:13px;}
+.sem-item label{font-size:10.5px;}
+.sem-item .sval{font-size:14px;}
+.sem-pct-big{font-size:38px;}
+.chip{font-size:11.5px; padding:5px 13px;}
+.disp{font-size:11.5px;}
+.res-table th{font-size:10.5px; padding:0 12px 12px;}
+.res-table td{font-size:14px; padding:14px 12px;}
+.login-title{font-size:21px;}
+.login-subtitle{font-size:13px; line-height:1.5;}
+.lf-group label{font-size:11px;}
+.lf-group input{font-size:14.5px; padding:13px 16px;}
+
+/* ── Pulido: tarjetas y filas con leve elevación al pasar el mouse,
+   consistente con el resto de herramientas internas ─────────────── */
+.top-card, .sec{transition:box-shadow .32s ease, transform .32s var(--ease-overshoot), background-color .35s ease, border-color .35s ease;}
+.top-card:hover, .sec:hover{box-shadow:0 8px 24px rgba(13,31,60,.12); transform:translateY(-1px);}
+[data-theme="dark"] .top-card:hover, [data-theme="dark"] .sec:hover{box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.res-table tr:not(.row-empty):hover td{background:var(--off);}

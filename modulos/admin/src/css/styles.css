@@ -385,3 +385,24 @@ body, .chart-card, .ref-tile, table, .modal-card, .toast, .btn-accion, .btn-secu
 [data-theme="dark"] .modal-card h3{
   color:var(--text);
 }
+
+/* ── Ajuste de legibilidad (misma fuente Manrope, tamaños más cómodos) */
+.brand-title{font-size:32px;}
+.brand-sub{font-size:14px; line-height:1.5;}
+.chart-head h2{font-size:16px;}
+.conteo{font-size:13px;}
+.ref-tile .ref-rol{font-size:15px;}
+.ref-modulo{font-size:13px;}
+table{font-size:14px;}
+th{font-size:11.5px;}
+.usuario-nombre{font-size:14px;}
+.usuario-email{font-size:12px;}
+.badge-estado{font-size:11.5px;}
+.btn-accion{font-size:12.5px;}
+.modal-card label{font-size:12.5px;}
+.modal-card input, .modal-card select{font-size:14.5px;}
+
+/* ── Pulido: leve elevación al pasar el mouse sobre las tarjetas ─── */
+.chart-card{transition:box-shadow .32s ease, transform .32s var(--ease-overshoot), background-color .35s ease, border-color .35s ease;}
+.chart-card:hover{box-shadow:0 8px 24px rgba(13,31,60,.12); transform:translateY(-1px);}
+[data-theme="dark"] .chart-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4);}

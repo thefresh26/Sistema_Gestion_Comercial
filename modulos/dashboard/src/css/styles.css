@@ -330,3 +330,14 @@ body, .chart-card{ transition:background-color .35s ease, color .35s ease, borde
 [data-theme="dark"] .chart-card{box-shadow:0 2px 12px rgba(0,0,0,.35);}
 [data-theme="dark"] .vista-btn:not(.activo):hover{background:rgba(234,241,251,.08);}
 [data-theme="dark"] .nota-frv{background:rgba(245,168,0,.12); border-color:rgba(245,168,0,.3);}
+
+/* ── Ajuste de legibilidad (misma fuente Manrope, tamaños más cómodos) */
+.stat-tile .stat-value{font-size:25px;}
+.chart-head h2{font-size:16px;}
+.chart-sub{font-size:12.5px;}
+.nota-frv{font-size:12.5px; line-height:1.55;}
+
+/* ── Pulido: leve elevación al pasar el mouse sobre las tarjetas ─── */
+.chart-card{transition:box-shadow .32s ease, transform .32s var(--ease-overshoot), background-color .35s ease, border-color .35s ease;}
+.chart-card:hover{box-shadow:0 8px 24px rgba(13,31,60,.12); transform:translateY(-1px);}
+[data-theme="dark"] .chart-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4);}
