@@ -341,3 +341,17 @@ body, .chart-card{ transition:background-color .35s ease, color .35s ease, borde
 .chart-card{transition:box-shadow .32s ease, transform .32s var(--ease-overshoot), background-color .35s ease, border-color .35s ease;}
 .chart-card:hover{box-shadow:0 8px 24px rgba(13,31,60,.12); transform:translateY(-1px);}
 [data-theme="dark"] .chart-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4);}
+
+/* ── Mejora visual real: acento de color y sombras más presentes ─── */
+.chart-card{
+  border-radius:16px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 3px 14px rgba(13,31,60,.07);
+}
+.chart-card::before{
+  content:'';
+  position:absolute; left:0; top:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--blue), var(--yellow));
+  opacity:.85;
+}

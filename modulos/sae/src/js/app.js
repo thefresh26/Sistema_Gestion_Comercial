@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     const s = await r.json();
     if(s.autenticado){
       document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('hero-eyebrow').textContent = 'CONSULTA DE EXPRESIONES DE INTERÉS · SAE · 2026';
+      document.getElementById('hero-eyebrow').textContent = 'MÓDULO SAE · ACTUALIZADO 2026';
       iniciarControlInactividad();
     }
   }catch(e){}
@@ -84,7 +84,7 @@ async function doLogin(){
     }
 
     document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('hero-eyebrow').textContent = 'CONSULTA DE EXPRESIONES DE INTERÉS · SAE · 2026';
+    document.getElementById('hero-eyebrow').textContent = 'MÓDULO SAE · ACTUALIZADO 2026';
     iniciarControlInactividad();
   }catch(e){
     btn.disabled = false;

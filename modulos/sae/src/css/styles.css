@@ -251,3 +251,39 @@ body, .top-card, .sec, .login-card, .res-table, #sb{
 .top-card:hover, .sec:hover{box-shadow:0 8px 24px rgba(13,31,60,.12); transform:translateY(-1px);}
 [data-theme="dark"] .top-card:hover, [data-theme="dark"] .sec:hover{box-shadow:0 8px 24px rgba(0,0,0,.4);}
 .res-table tr:not(.row-empty):hover td{background:var(--off);}
+
+/* ── Mejora visual real: más aire, acento de color y sombras más
+   presentes -- para que el rediseño se note, no solo se lea mejor ── */
+.hero-eyebrow{margin-bottom:14px; display:inline-block; padding:4px 12px; border-radius:100px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.16);}
+.hero{padding-top:44px; padding-bottom:48px;}
+.hero h1{margin-top:2px;}
+.search-card{border-radius:16px; box-shadow:0 12px 32px -14px rgba(0,0,0,.35);}
+
+.top-card, .sec{
+  border-radius:16px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 3px 14px rgba(13,31,60,.07);
+}
+.top-card::before, .sec::before{
+  content:'';
+  position:absolute; left:0; top:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--blue), var(--yellow));
+  opacity:.85;
+}
+[data-theme="dark"] .top-card, [data-theme="dark"] .sec{box-shadow:0 3px 14px rgba(0,0,0,.4);}
+
+main{padding-top:34px;}
+.stitle{margin-bottom:20px;}
+
+/* ── FIX: el héroe y el botón de login son franjas fijas oscuras
+   (navy) en los dos temas, pero su texto reutilizaba var(--white),
+   la MISMA variable que también sirve de fondo para las tarjetas y
+   que sí cambia a un tono oscuro en tema oscuro. Resultado: el texto
+   del héroe se volvía casi invisible (oscuro sobre oscuro) al pasar a
+   tema oscuro -- esto es lo que se veía como "letras que se cambian/
+   se superponen". Se fija con un color de texto independiente que no
+   cambia con el tema. */
+.hero h1{ color:#eaf1fb; }
+.hero h1 span{ color:var(--yellow); }
+#l-btn{ color:#eaf1fb; }

@@ -631,3 +631,19 @@ thead th{font-size:11.5px;}
 /* ── Pulido: leve elevación al pasar el mouse sobre las tarjetas ─── */
 .table-wrap{transition:box-shadow .32s ease, background-color .35s ease, border-color .35s ease;}
 [data-theme="dark"] .table-wrap{box-shadow:0 8px 24px rgba(0,0,0,.4);}
+
+/* ── Mejora visual real: acento de color y sombras más presentes ─── */
+.table-wrap{
+  border-radius:12px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 3px 14px rgba(13,31,60,.07);
+}
+.table-wrap::before{
+  content:'';
+  position:absolute; left:0; top:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--gold), var(--gold-deep));
+  opacity:.85;
+  z-index:1;
+}
+[data-theme="dark"] .table-wrap{box-shadow:0 3px 14px rgba(0,0,0,.4);}
