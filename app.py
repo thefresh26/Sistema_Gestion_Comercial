@@ -858,6 +858,7 @@ def documentos_ver_caso(tipo: str, fmi: str):
         correcciones=correcciones,
         tipos_documento_fuente=modulo.TIPOS_DOCUMENTO_FUENTE,
         campos_editables=modulo.CAMPOS_EDITABLES,
+        error=request.args.get("error"),
     )
 
 
@@ -887,7 +888,13 @@ def documentos_generar(tipo: str, fmi: str):
         return "Ese tipo de documento todavía no está disponible.", 404
     modulo = info["modulo"]
 
-    contenido, nombre_archivo, _pendientes = modulo.generar(fmi)
+    try:
+        contenido, nombre_archivo, _pendientes = modulo.generar(fmi)
+    except ValueError as e:
+        # Dato de negocio no encontrado (ej. el FMI/código no tiene ninguna
+        # subasta asociada) -- se muestra como mensaje en la ficha, no como
+        # error 500 crudo.
+        return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi, error=str(e)))
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,

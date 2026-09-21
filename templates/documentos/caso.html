@@ -9,6 +9,13 @@
     <span class="badge {{ caso.estado }}">{{ caso.estado.replace('_',' ') }}</span>
   </p>
 
+  {% if error %}
+  <div class="card" style="border-left:4px solid #c0392b; background:#fdecea">
+    <h2 style="margin-top:0; color:#c0392b">No se pudo generar el documento</h2>
+    <p style="margin-bottom:0">{{ error }}</p>
+  </div>
+  {% endif %}
+
   {% if caso.pendientes %}
   <div class="card">
     <h2>Pendientes de este documento</h2>
