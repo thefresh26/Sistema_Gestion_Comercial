@@ -4,8 +4,8 @@ const TAB_LABELS = {
   frv: 'Inmuebles FRV',
   vista_inmuebles: 'Inmuebles',
   dashboard: 'Estadísticas',
-  admin: 'Permisos',
   documentos: 'Documentos',
+  admin: 'Permisos',
 };
 
 const TAB_DESCRIPCIONES = {
@@ -13,8 +13,8 @@ const TAB_DESCRIPCIONES = {
   frv: 'Consulta de bienes del Fondo de Reparación a las Víctimas.',
   vista_inmuebles: 'Consulta de inventario con semáforo de viabilidad, por folio (FMI).',
   dashboard: 'Folios y unidades vendidas en SAE y FRV, por año.',
-  admin: 'Crear usuarios y asignar qué módulos puede ver cada uno.',
   documentos: 'Genera Actas de Arrendamiento, Certificados DD y otros documentos por FMI.',
+  admin: 'Crear usuarios y asignar qué módulos puede ver cada uno.',
 };
 
 let sesionActual = null;
