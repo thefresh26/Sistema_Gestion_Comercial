@@ -1,23 +1,48 @@
 :root{
-  --navy:#0d1f3c;
-  --navy3:#1e3a68;
-  --yellow:#f5a800;
+  --navy:#0b2a4a;
+  --navy3:#173f70;
+  --yellow:#f5a623;
   --yellow2:#ffc233;
-  --blue:#1a5bbf;
-  --off:#f4f6fa;
-  --border:#dce3ef;
-  --text:#1a2340;
-  --muted:#6b7a99;
-  --sans: 'Montserrat', 'Open Sans', Arial, sans-serif;
+  --blue:#1aa8dd;
+  --off:#0a1628;
+  --card:rgba(234,241,251,0.045);
+  --border:rgba(234,241,251,0.12);
+  --text:#eaf1fb;
+  --muted:rgba(234,241,251,0.62);
+  --sello:#E03535;
+  --esmeralda:#1AB87A;
+  --sans: 'Manrope', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;height:100%;}
+html{ overflow-x:hidden; max-width:100%; }
+body{ max-width:100%; margin:0; padding:0; height:100%; }
+html{
+  scroll-behavior:smooth;
+  scrollbar-width:none; /* Firefox */
+  -ms-overflow-style:none; /* Edge/IE viejo */
+}
+html::-webkit-scrollbar{ display:none; width:0; height:0; } /* Chrome, Safari, Edge nuevo */
+
 body{
   font-family:var(--sans);
-  background:var(--off);
   color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  /* Mismo fondo "plano arquitectonico" que el resto de herramientas
+     internas (Subasta Activa / portafolio_inmuebles/admin): navy profundo
+     con una cuadricula fina y halos de marca muy tenues. */
+  background-color:var(--off);
+  background-image:
+    linear-gradient(rgba(234,241,251,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(234,241,251,0.05) 1px, transparent 1px),
+    radial-gradient(ellipse 1000px 800px at 0% 0%, rgba(26,168,221,0.14) 0%, rgba(26,168,221,0) 60%),
+    radial-gradient(ellipse 1000px 800px at 100% 100%, rgba(245,166,35,0.10) 0%, rgba(245,166,35,0) 60%);
+  background-size:42px 42px, 42px 42px, auto, auto;
+  background-repeat:repeat, repeat, no-repeat, no-repeat;
+  background-attachment:fixed, fixed, scroll, scroll;
 }
+
+h1,h2,h3{font-family:var(--sans); margin:0;}
 
 /* Easing con un pequeño overshoot (rebasa el destino y vuelve) para que
    las entradas y el hover se sientan con más "personalidad" que un
@@ -26,84 +51,124 @@ body{
   --ease-overshoot: cubic-bezier(.34, 1.35, .64, 1);
 }
 
-/* ── LOGIN ────────────────────────────────────────────── */
+/* ── LOGIN (misma tarjeta de dos tonos que Subasta Activa / el panel
+   interno del portafolio, para que el primer login se sienta la misma
+   marca) ────────────────────────────────────────────── */
 #login-screen{
   min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:var(--navy);
+  padding:24px;
 }
 .login-card{
-  background:#fff;
-  width:320px;
-  padding:32px 28px;
-  border-radius:14px;
-  box-shadow:0 20px 50px rgba(0,0,0,.35);
-  text-align:center;
+  width:100%;
+  max-width:380px;
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 25px 60px -15px rgba(0,0,0,.5);
+  text-align:left;
   animation:login-card-in .45s var(--ease-overshoot) both;
 }
 @keyframes login-card-in{
   from{ opacity:0; transform:translateY(20px); }
   to{ opacity:1; transform:translateY(0); }
 }
+.login-banner{
+  padding:34px 28px 26px;
+  background:linear-gradient(100deg, #7a4a12 0%, var(--navy3) 46%, #0d3a63 100%);
+  text-align:left;
+}
+.login-logo{width:44px; height:44px; margin:0 0 14px; border-radius:10px; object-fit:cover;}
 .login-card h1{
-  font-size:16px;
-  margin:14px 0 2px;
+  font-size:19px;
+  font-weight:800;
+  margin:0 0 6px;
   color:var(--text);
 }
 .login-card .sub{
-  font-size:12.5px;
-  color:var(--muted);
-  margin-bottom:20px;
+  font-size:13px;
+  color:rgba(234,241,251,0.75);
+  margin-bottom:0;
+  line-height:1.5;
+}
+.login-body{
+  background:var(--text);
+  padding:26px 28px 28px;
 }
 .login-card label{
   display:block;
   text-align:left;
-  font-size:12px;
-  color:var(--muted);
-  margin:12px 0 4px;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  color:rgba(11,42,74,0.5);
+  margin:14px 0 6px;
 }
+.login-card label:first-of-type{margin-top:0;}
 .login-card input{
   width:100%;
-  padding:10px 12px;
-  border-radius:8px;
-  border:1.5px solid #ddd;
+  padding:11px 14px;
+  border-radius:10px;
+  border:1.5px solid rgba(11,42,74,0.12);
+  background:#fff;
+  color:var(--navy);
   font-size:14px;
   font-family:var(--sans);
   transition:border-color .3s ease, box-shadow .3s ease;
 }
-.login-card input:focus{outline:none; border-color:var(--navy); box-shadow:0 0 0 3px rgba(13,31,60,.1);}
+.login-card input:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(26,168,221,0.2);}
 .login-card button{
   margin-top:20px;
   width:100%;
-  padding:11px;
+  padding:12px;
   border:none;
-  border-radius:8px;
-  background:var(--navy);
-  color:#fff;
+  border-radius:10px;
+  background:linear-gradient(90deg, var(--blue) 0%, var(--navy3) 100%);
+  color:var(--text);
   font-weight:700;
   font-size:14px;
+  font-family:var(--sans);
   cursor:pointer;
-  transition:background .32s ease, transform .3s var(--ease-overshoot), box-shadow .32s ease, opacity .32s ease;
+  box-shadow:0 10px 20px -8px rgba(26,168,221,0.4);
+  transition:filter .32s ease, transform .3s var(--ease-overshoot), box-shadow .32s ease, opacity .32s ease;
 }
-.login-card button:hover:not(:disabled){background:var(--navy3); box-shadow:0 4px 14px rgba(13,31,60,.25); transform:translateY(-2px);}
-.login-card button:active:not(:disabled){transform:translateY(0) scale(.96); box-shadow:none; transition-duration:.1s;}
+.login-card button:hover:not(:disabled){filter:brightness(1.08); box-shadow:0 4px 14px rgba(26,168,221,.35); transform:translateY(-2px);}
+.login-card button:active:not(:disabled){transform:translateY(0) scale(.96); transition-duration:.1s;}
 .login-card button:disabled{opacity:.6; cursor:default;}
 #login-error{
   display:none;
-  margin-top:12px;
+  margin-top:14px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:rgba(224,53,53,0.1);
+  border:1px solid rgba(224,53,53,0.35);
   font-size:12.5px;
-  color:#c0203f;
+  line-height:1.5;
+  color:#b23a3a;
 }
-.login-logo{width:150px; margin:0 auto;}
+.login-footer{
+  margin-top:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  color:rgba(11,42,74,0.4);
+  font-size:11px;
+}
+.login-footer .dot{width:6px; height:6px; border-radius:999px; background:var(--esmeralda); flex-shrink:0;}
 
 /* ── SHELL ────────────────────────────────────────────── */
 #shell{display:none; min-height:100vh; flex-direction:column;}
 
 .topbar{
-  background:var(--navy);
-  color:#fff;
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:rgba(11,42,74,0.85);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(234,241,251,0.10);
 }
 .topbar-inner{
   max-width:1400px;
@@ -122,28 +187,33 @@ body{
   font-weight:700;
   font-size:15px;
   padding-bottom:10px;
+  color:var(--text);
 }
-.brand img{height:26px;}
+.brand img{height:26px; border-radius:6px;}
 .session-info{
   display:flex;
   align-items:center;
   gap:14px;
   padding-bottom:10px;
   font-size:12.5px;
-  color:#c9cad0;
+  color:var(--muted);
 }
-.session-info b{color:#fff;}
+.session-info b{color:var(--text);}
 .logout-link{
-  color:#fff;
-  background:rgba(255,255,255,.1);
-  border:1px solid rgba(255,255,255,.25);
-  padding:6px 12px;
-  border-radius:6px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--text);
+  background:rgba(234,241,251,.08);
+  border:1px solid rgba(234,241,251,.18);
+  padding:8px 14px;
+  border-radius:8px;
   font-size:12px;
+  font-family:var(--sans);
   cursor:pointer;
-  transition:background .3s ease, transform .2s var(--ease-overshoot);
+  transition:background .3s ease, border-color .3s ease, transform .2s var(--ease-overshoot);
 }
-.logout-link:hover{background:rgba(255,255,255,.2);}
+.logout-link:hover{background:rgba(224,53,53,.16); border-color:rgba(224,53,53,.4);}
 .logout-link:active{transform:scale(.94); transition-duration:.1s;}
 
 .tabs{
@@ -154,7 +224,7 @@ body{
 .tab-btn{
   background:none;
   border:none;
-  color:#c9cad0;
+  color:var(--muted);
   font-family:var(--sans);
   font-size:13.5px;
   font-weight:600;
@@ -163,10 +233,10 @@ body{
   border-radius:8px 8px 0 0;
   transition:background .3s ease, color .3s ease, transform .2s var(--ease-overshoot);
 }
-.tab-btn:hover{color:#fff; background:rgba(255,255,255,.06);}
+.tab-btn:hover{color:var(--text); background:rgba(234,241,251,.06);}
 .tab-btn:active{transform:scale(.96); transition-duration:.1s;}
-.tab-btn.active{color:var(--yellow); background:rgba(245,168,0,.14);}
-.tab-strip{height:4px; background:var(--yellow);}
+.tab-btn.active{color:var(--yellow); background:rgba(245,166,35,.14);}
+.tab-strip{height:4px; background:linear-gradient(90deg, var(--blue), var(--yellow));}
 
 .tab-panels{flex:1; display:flex; flex-direction:column;}
 .tab-panel{display:none; flex:1; flex-direction:column;}
@@ -181,7 +251,7 @@ body{
   width:100%;
   flex:1;
   min-height:calc(100vh - 96px);
-  background:#fff;
+  background:var(--text);
 }
 
 #panel-inicio{
@@ -189,7 +259,7 @@ body{
   margin:0 auto;
   padding:48px 24px;
 }
-#panel-inicio h2{font-size:22px; margin-bottom:6px;}
+#panel-inicio h2{font-size:24px; font-weight:800; margin-bottom:6px; color:var(--text);}
 #panel-inicio p{color:var(--muted); font-size:14px; line-height:1.6;}
 .modulo-cards{
   display:grid;
@@ -198,17 +268,26 @@ body{
   margin-top:28px;
 }
 .modulo-card{
-  background:#fff;
-  border:1px solid #e4e4e7;
-  border-radius:12px;
-  padding:18px;
+  position:relative;
+  overflow:hidden;
+  background:var(--card);
+  border:1px solid var(--border);
+  backdrop-filter:blur(6px);
+  border-radius:14px;
+  padding:18px 18px 18px 21px;
   cursor:pointer;
-  transition:box-shadow .32s ease, border-color .32s ease, transform .32s var(--ease-overshoot);
+  transition:box-shadow .32s ease, border-color .32s ease, transform .32s var(--ease-overshoot), background .32s ease;
 }
-.modulo-card:hover{box-shadow:0 10px 28px rgba(13,31,60,.16); border-color:var(--yellow); transform:translateY(-4px);}
+.modulo-card::before{
+  content:"";
+  position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(180deg, var(--blue), var(--yellow));
+  opacity:.8;
+}
+.modulo-card:hover{box-shadow:0 14px 28px -12px rgba(0,0,0,.5); border-color:rgba(245,166,35,.4); background:rgba(234,241,251,0.07); transform:translateY(-4px);}
 .modulo-card:active{transform:translateY(-1px) scale(.98); transition-duration:.1s;}
-.modulo-card h3{font-size:14.5px; margin:0 0 6px;}
-.modulo-card p{font-size:12.5px; color:var(--muted); margin:0;}
+.modulo-card h3{font-size:14.5px; font-weight:700; margin:0 0 6px; color:var(--text);}
+.modulo-card p{font-size:12.5px; color:var(--muted); margin:0; line-height:1.5;}
 
 .panel-externo{
   max-width:640px;
@@ -216,20 +295,21 @@ body{
   text-align:center;
   padding:0 24px;
 }
-.panel-externo h2{font-size:18px; margin-bottom:8px;}
+.panel-externo h2{font-size:18px; margin-bottom:8px; color:var(--text);}
 .panel-externo p{color:var(--muted); font-size:13.5px; margin-bottom:22px;}
 .btn-externo{
   display:inline-block;
-  background:var(--navy);
-  color:#fff;
+  background:linear-gradient(90deg, var(--blue) 0%, var(--navy3) 100%);
+  color:var(--text);
   text-decoration:none;
   font-weight:700;
   font-size:13.5px;
   padding:12px 22px;
   border-radius:8px;
-  transition:background .3s ease, transform .2s var(--ease-overshoot);
+  box-shadow:0 10px 20px -8px rgba(26,168,221,0.4);
+  transition:filter .3s ease, transform .2s var(--ease-overshoot);
 }
-.btn-externo:hover{background:var(--navy3); transform:translateY(-2px);}
+.btn-externo:hover{filter:brightness(1.08); transform:translateY(-2px);}
 .btn-externo:active{transform:translateY(0) scale(.96); transition-duration:.1s;}
 
 @media (max-width: 700px){

@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema de Gestión Comercial — Activos por Colombia</title>
 <link rel="icon" type="image/png" href="/portal/public/logos/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/portal/src/css/portal.css">
 </head>
 <body>
@@ -13,15 +15,20 @@
 <!-- ═══════════ LOGIN ═══════════ -->
 <div id="login-screen">
   <div class="login-card">
-    <img class="login-logo" src="/portal/public/logos/logo-activos-colombia.png" alt="Activos por Colombia">
-    <h1>Sistema de Gestión Comercial</h1>
-    <div class="sub">Activos por Colombia S.A.S.</div>
-    <label for="l-user">Usuario</label>
-    <input id="l-user" type="text" autocomplete="username" autocorrect="off" spellcheck="false">
-    <label for="l-pass">Contraseña</label>
-    <input id="l-pass" type="password" autocomplete="current-password">
-    <div id="login-error">Usuario o contraseña incorrectos.</div>
-    <button id="l-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-banner">
+      <img class="login-logo" src="/portal/public/logos/icono-activos-colombia.png" alt="Activos por Colombia">
+      <h1>Sistema de Gestión Comercial</h1>
+      <div class="sub">Ingresa con tu usuario de Activos por Colombia para entrar al sistema.</div>
+    </div>
+    <div class="login-body">
+      <label for="l-user">Usuario</label>
+      <input id="l-user" type="text" autocomplete="username" autocorrect="off" spellcheck="false">
+      <label for="l-pass">Contraseña</label>
+      <input id="l-pass" type="password" autocomplete="current-password">
+      <div id="login-error">Usuario o contraseña incorrectos.</div>
+      <button id="l-btn" onclick="doLogin()">Ingresar</button>
+      <div class="login-footer"><span class="dot"></span>Activos por Colombia S.A.S.</div>
+    </div>
   </div>
 </div>
 
