@@ -12,8 +12,8 @@
     --no:#b14a3b;
     --no-bg:#fbe9e6;
     --mono: 'Courier New', monospace;
-    --serif: 'Manrope', Arial, sans-serif;
-    --sans: 'Manrope', Arial, sans-serif;
+    --serif: 'Outfit', Arial, sans-serif;
+    --sans: 'Outfit', Arial, sans-serif;
   }
 
   /* Easing con pequeño overshoot (rebasa el destino y vuelve), igual que en portal.css */

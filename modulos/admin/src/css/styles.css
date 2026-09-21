@@ -13,8 +13,8 @@
   --red-bg:#fdecea;
   --green:#1e8a4c;
   --green-bg:#e9f7ef;
-  --sans:'Manrope', Arial, sans-serif;
-  --heading:'Manrope', Arial, sans-serif;
+  --sans:'Outfit', Arial, sans-serif;
+  --heading:'Outfit', Arial, sans-serif;
 }
 
 /* Easing con pequeño overshoot (rebasa el destino y vuelve), igual que en portal.css */
