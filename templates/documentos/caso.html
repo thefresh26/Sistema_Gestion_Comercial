@@ -1,0 +1,90 @@
+{% extends "documentos/base.html" %}
+{% block titulo %}{{ caso.fmi }}{% endblock %}
+{% block contenido %}
+<div class="container">
+  <p><a class="link" href="{{ url_for('documentos_index') }}">&larr; Buscar otro caso</a></p>
+  <h1 style="margin-bottom:4px">{{ caso.fmi }}</h1>
+  <p style="color:var(--text-dim); margin-top:0">
+    {{ info.etiqueta }} &middot;
+    <span class="badge {{ caso.estado }}">{{ caso.estado.replace('_',' ') }}</span>
+  </p>
+
+  {% if caso.pendientes %}
+  <div class="card">
+    <h2>Pendientes de este documento</h2>
+    <ul class="pendientes">
+      {% for p in caso.pendientes %}<li>{{ p }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Datos del caso</h2>
+    <div class="field-grid">
+      {% for campo, etiqueta in campos_editables %}
+      <div class="field">
+        <label>{{ etiqueta }}{% if campo in correcciones %} (corregido a mano){% endif %}</label>
+        <div class="value">{{ correcciones.get(campo) or caso.get(campo) or '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Corregir un dato a mano</h2>
+    <p style="color:var(--text-dim); font-size:13px; margin-top:-8px">
+      Si un dato quedó mal o el documento de origen es un escaneo sin texto, corrígelo aquí una sola vez —
+      queda guardado para todas las próximas veces que se genere este documento.
+    </p>
+    <form class="upload-form" method="post" action="{{ url_for('documentos_editar_correccion', tipo=tipo, fmi=caso.fmi) }}">
+      <select name="campo">
+        {% for campo, etiqueta in campos_editables %}
+        <option value="{{ campo }}">{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="valor" placeholder="Valor correcto" style="flex:1; min-width:200px">
+      <button class="btn btn-secondary" type="submit">Guardar corrección</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Documentos de origen</h2>
+    <div class="doc-list">
+      {% for d in documentos_fuente %}
+      <div class="doc-row">
+        <div>{{ tipos_documento_fuente.get(d.tipo, d.tipo) }} — {{ d.nombre_archivo }}</div>
+        <a class="link" href="{{ url_for('documentos_descargar', doc_id=d.id) }}">Descargar</a>
+      </div>
+      {% else %}
+      <p style="color:var(--text-dim); font-size:14px">Todavía no se ha subido ningún documento.</p>
+      {% endfor %}
+    </div>
+    <form class="upload-form" method="post" action="{{ url_for('documentos_subir_documento', tipo=tipo, fmi=caso.fmi) }}" enctype="multipart/form-data">
+      <select name="tipo_fuente">
+        {% for clave, etiqueta in tipos_documento_fuente.items() %}
+        <option value="{{ clave }}">{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+      <input type="file" name="archivo" required>
+      <button class="btn btn-secondary" type="submit">Subir documento</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Documento generado</h2>
+    {% if documentos_generados %}
+      {% for a in documentos_generados %}
+      <div class="doc-row">
+        <div>{{ a.nombre_archivo }} — {{ a.subido_en.strftime('%d/%m/%Y %H:%M') }}</div>
+        <a class="link" href="{{ url_for('documentos_descargar', doc_id=a.id) }}">Descargar</a>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--text-dim); font-size:14px">Todavía no se ha generado este documento para el caso.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('documentos_generar', tipo=tipo, fmi=caso.fmi) }}" style="margin-top:16px">
+      <button class="btn" type="submit">Generar ahora</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

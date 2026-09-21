@@ -1,0 +1,57 @@
+{% extends "documentos/base.html" %}
+{% block titulo %}Buscar caso{% endblock %}
+{% block contenido %}
+<div class="container">
+  <div class="hero">
+    <h1>Elige qué necesitas<br>y genera el documento al instante.</h1>
+    <p>Escoge el tipo de documento, escribe el FMI o el nombre, y el sistema reúne la información y lo genera por ti.</p>
+  </div>
+
+  <div class="field" style="margin-bottom:18px">
+    <label>Tipo de documento</label>
+    <select id="tipo-select" style="width:100%; padding:12px 14px; font-size:15px">
+      {% for clave, info in tipos.items() %}
+      <option value="{{ clave }}" {% if not info.disponible %}disabled{% endif %}>
+        {{ info.etiqueta }}{% if not info.disponible %} — próximamente{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="buscador" placeholder="Ej. 001-389120 o Cindy Murillo" autofocus>
+    <button class="btn" onclick="buscar()">Buscar</button>
+  </div>
+
+  <div class="results" id="resultados"></div>
+</div>
+
+<script>
+async function buscar() {
+  const q = document.getElementById('buscador').value.trim();
+  const tipo = document.getElementById('tipo-select').value;
+  const cont = document.getElementById('resultados');
+  cont.innerHTML = '';
+  if (!q) return;
+  const res = await fetch(`/api/documentos/buscar?q=${encodeURIComponent(q)}&tipo=${encodeURIComponent(tipo)}`);
+  const casos = await res.json();
+  if (casos.length === 0) {
+    cont.innerHTML = `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(q)}">
+      <div><div class="fmi">${q}</div><div class="nombre">Caso nuevo — clic para crearlo</div></div>
+    </a>`;
+    return;
+  }
+  for (const c of casos) {
+    const badge = c.estado || 'pendiente';
+    cont.innerHTML += `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(c.fmi)}">
+      <div><div class="fmi">${c.fmi}</div><div class="nombre">${c.arrendatario_nombre || 'Sin arrendatario'} · ${c.direccion || ''}</div></div>
+      <span class="badge ${badge}">${badge.replace('_', ' ')}</span>
+    </a>`;
+  }
+}
+
+document.getElementById('buscador').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') buscar();
+});
+</script>
+{% endblock %}

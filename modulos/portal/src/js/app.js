@@ -5,6 +5,7 @@ const TAB_LABELS = {
   vista_inmuebles: 'Inmuebles',
   dashboard: 'Estadísticas',
   admin: 'Permisos',
+  documentos: 'Documentos',
 };
 
 const TAB_DESCRIPCIONES = {
@@ -13,6 +14,7 @@ const TAB_DESCRIPCIONES = {
   vista_inmuebles: 'Consulta de inventario con semáforo de viabilidad, por folio (FMI).',
   dashboard: 'Folios y unidades vendidas en SAE y FRV, por año.',
   admin: 'Crear usuarios y asignar qué módulos puede ver cada uno.',
+  documentos: 'Genera Actas de Arrendamiento, Certificados DD y otros documentos por FMI.',
 };
 
 let sesionActual = null;
@@ -24,7 +26,7 @@ let sesionActual = null;
 // parpadeo), asi que aqui solo hace falta: (1) guardar la preferencia
 // y (2) empujarla en caliente a los visores que ya estan abiertos.
 const THEME_KEY = 'apc-theme';
-const IDS_VISORES = ['frame-sae', 'frame-frv', 'frame-vista_inmuebles', 'frame-dashboard', 'frame-admin'];
+const IDS_VISORES = ['frame-sae', 'frame-frv', 'frame-vista_inmuebles', 'frame-dashboard', 'frame-admin', 'frame-documentos'];
 
 function temaGuardado(){
   try{ return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; }catch(e){ return 'light'; }
@@ -111,6 +113,7 @@ function activarTab(nombre){
     vista_inmuebles: ['frame-vista_inmuebles', '/vista_inmuebles/'],
     dashboard: ['frame-dashboard', '/dashboard/'],
     admin: ['frame-admin', '/admin/'],
+    documentos: ['frame-documentos', '/documentos/'],
   };
   if(mapaRutas[nombre]){
     const [id, ruta] = mapaRutas[nombre];

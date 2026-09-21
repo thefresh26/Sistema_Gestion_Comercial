@@ -28,7 +28,14 @@ import os
 import json
 import requests
 from functools import wraps
-from flask import Flask, send_from_directory, request, session, jsonify
+from flask import Flask, send_from_directory, request, session, jsonify, render_template, send_file, redirect, url_for
+import io
+from dotenv import load_dotenv
+
+from core import db as db_documentos
+from core.tipos import TIPOS as TIPOS_DOCUMENTO
+
+load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -87,6 +94,9 @@ MODULOS = {
     "dashboard": {"comercial", "admin"},
     # Panel de permisos: solo lo abre el rol admin (ver pregunta al usuario).
     "admin": {"admin"},
+    # Generador de documentos (Actas, Certificados DD, etc.) -- ver
+    # sección "MÓDULO DOCUMENTOS" más abajo.
+    "documentos": {"comercial", "admin"},
 }
 
 # Roles que NO deben ver los campos de avalúo de FRV (ver CAMPOS_AVALUO_FRV
@@ -116,6 +126,7 @@ MODULOS_LISTA_LEGIBLE = {
     "vista_inmuebles": "Vista Inmuebles",
     "dashboard": "Estadísticas",
     "admin": "Administración",
+    "documentos": "Documentos",
 }
 
 # Campos de FRV visibles para CUALQUIER rol con acceso al módulo (son
@@ -778,6 +789,143 @@ def admin_sincronizar_nombres():
         )
 
     return jsonify({"ok": True, "actualizados": actualizados})
+
+
+
+
+# ── MÓDULO DOCUMENTOS (generador de Actas, Certificados, etc.) ──────────
+# A diferencia de los demás módulos (que consultan Supabase), este habla
+# con su propia base de datos (Neon, ver DATABASE_URL) para los datos y
+# archivos de cada caso, y con la base de negocio existente (solo lectura,
+# ver AZURE_DATABASE_URL) para Certificado DD y Acta de Alcance. Cada tipo
+# de documento vive en su propio módulo dentro de core/tipos/.
+
+def _tipo_documento_o_404(tipo: str):
+    info = TIPOS_DOCUMENTO.get(tipo)
+    if not info or not info["disponible"]:
+        return None
+    return info
+
+
+@app.route("/documentos/")
+@requires_modulo("documentos")
+def documentos_index():
+    return render_template("documentos/index.html", tipos=TIPOS_DOCUMENTO)
+
+
+@app.route("/documentos/style.css")
+@requires_modulo("documentos")
+def documentos_style():
+    return send_from_directory(os.path.join(BASE_DIR, "modulos", "documentos"), "style.css")
+
+
+@app.route("/api/documentos/buscar")
+@requires_modulo("documentos")
+def documentos_buscar():
+    termino = request.args.get("q", "")
+    tipo = request.args.get("tipo", "")
+    resultados = db_documentos.buscar_casos(termino, tipo_salida=tipo or None)
+    return jsonify(resultados)
+
+
+@app.route("/documentos/caso/<tipo>/<fmi>")
+@requires_modulo("documentos")
+def documentos_ver_caso(tipo: str, fmi: str):
+    info = _tipo_documento_o_404(tipo)
+    if not info:
+        return "Ese tipo de documento todavía no está disponible.", 404
+    modulo = info["modulo"]
+
+    caso = db_documentos.obtener_caso(fmi)
+    if not caso:
+        db_documentos.upsert_caso(fmi, {"estado": "pendiente", "pendientes": []})
+        caso = db_documentos.obtener_caso(fmi)
+
+    documentos = db_documentos.listar_documentos(fmi)
+    documentos_fuente = [d for d in documentos if d["tipo"] != "documento_generado"]
+    documentos_generados = [d for d in documentos if d["tipo"] == "documento_generado" and d["tipo_salida"] == tipo]
+    correcciones = db_documentos.obtener_correcciones(fmi)
+
+    registrar_log("documentos", session.get("email"), "ver_caso", f"{tipo}:{fmi}", obtener_ip_cliente())
+
+    return render_template(
+        "documentos/caso.html",
+        tipo=tipo,
+        info=info,
+        caso=caso,
+        documentos_fuente=documentos_fuente,
+        documentos_generados=documentos_generados,
+        correcciones=correcciones,
+        tipos_documento_fuente=modulo.TIPOS_DOCUMENTO_FUENTE,
+        campos_editables=modulo.CAMPOS_EDITABLES,
+    )
+
+
+@app.route("/documentos/caso/<tipo>/<fmi>/documentos", methods=["POST"])
+@requires_modulo("documentos")
+def documentos_subir_documento(tipo: str, fmi: str):
+    if not _tipo_documento_o_404(tipo):
+        return "Ese tipo de documento todavía no está disponible.", 404
+    tipo_fuente = request.form.get("tipo_fuente")
+    archivo = request.files.get("archivo")
+    if not tipo_fuente or not archivo or not archivo.filename:
+        return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi))
+
+    contenido = archivo.read()
+    db_documentos.guardar_documento(
+        fmi, tipo_fuente, archivo.filename, archivo.mimetype or "application/octet-stream", contenido,
+    )
+    registrar_log("documentos", session.get("email"), "subir_documento", f"{tipo}:{fmi}:{tipo_fuente}", obtener_ip_cliente())
+    return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi))
+
+
+@app.route("/documentos/caso/<tipo>/<fmi>/generar", methods=["POST"])
+@requires_modulo("documentos")
+def documentos_generar(tipo: str, fmi: str):
+    info = _tipo_documento_o_404(tipo)
+    if not info:
+        return "Ese tipo de documento todavía no está disponible.", 404
+    modulo = info["modulo"]
+
+    contenido, nombre_archivo, _pendientes = modulo.generar(fmi)
+
+    doc_id = db_documentos.guardar_documento(
+        fmi, "documento_generado", nombre_archivo,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        contenido, tipo_salida=tipo,
+    )
+    db_documentos.registrar_generacion(fmi, doc_id, usuario=session.get("email", ""))
+    registrar_log("documentos", session.get("email"), "generar", f"{tipo}:{fmi} -> {nombre_archivo}", obtener_ip_cliente())
+
+    return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi))
+
+
+@app.route("/documentos/documento/<int:doc_id>")
+@requires_modulo("documentos")
+def documentos_descargar(doc_id: int):
+    documento = db_documentos.obtener_documento(doc_id)
+    if not documento:
+        return "Documento no encontrado", 404
+    return send_file(
+        io.BytesIO(documento["contenido"]),
+        mimetype=documento["mime_type"],
+        as_attachment=True,
+        download_name=documento["nombre_archivo"],
+    )
+
+
+@app.route("/documentos/caso/<tipo>/<fmi>/editar", methods=["POST"])
+@requires_modulo("documentos")
+def documentos_editar_correccion(tipo: str, fmi: str):
+    campo = request.form.get("campo", "")
+    valor = request.form.get("valor", "")
+    nota = request.form.get("nota", "")
+    if valor.strip():
+        db_documentos.guardar_correccion(fmi, campo, valor.strip(), nota=nota, usuario=session.get("email", ""))
+    else:
+        db_documentos.borrar_correccion(fmi, campo)
+    registrar_log("documentos", session.get("email"), "editar_correccion", f"{tipo}:{fmi}:{campo}", obtener_ip_cliente())
+    return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi))
 
 
 if __name__ == "__main__":

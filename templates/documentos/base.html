@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Actas de Arrendamiento{% endblock %} · Activos por Colombia</title>
+  <link rel="stylesheet" href="/documentos/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="{{ url_for('documentos_index') }}">Activos por Colombia <span>· Actas</span></a>
+  </div>
+  {% block contenido %}{% endblock %}
+</body>
+</html>

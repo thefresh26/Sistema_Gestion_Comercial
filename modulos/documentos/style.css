@@ -1,0 +1,208 @@
+:root {
+  --bg: #0a0a0b;
+  --bg-card: #131316;
+  --border: #232327;
+  --text: #f2f2f3;
+  --text-dim: #9a9aa2;
+  --accent: #6ee7b7;
+  --accent-dim: #1f2e28;
+  --danger: #f2a65a;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar .brand {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.topbar .brand span { color: var(--accent); }
+
+.container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+
+.hero h1 {
+  font-size: 40px;
+  line-height: 1.15;
+  margin: 0 0 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hero p {
+  color: var(--text-dim);
+  font-size: 16px;
+  margin: 0 0 40px;
+  max-width: 520px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 16px;
+  padding: 12px 14px;
+}
+
+.search-box input::placeholder { color: var(--text-dim); }
+
+.btn {
+  background: var(--accent);
+  color: #0a0a0b;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn:hover { opacity: 0.9; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.results {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.result-row:hover { border-color: var(--accent); }
+
+.result-row .fmi { font-weight: 700; font-size: 14px; }
+.result-row .nombre { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge.completo { background: var(--accent-dim); color: var(--accent); }
+.badge.pendiente { background: #2e2418; color: var(--danger); }
+.badge.con_observaciones { background: #2e2418; color: var(--danger); }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 20px;
+}
+
+.card h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin: 0 0 18px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.field .value { font-size: 15px; }
+
+.doc-list { display: flex; flex-direction: column; gap: 10px; }
+
+.doc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-row:last-child { border-bottom: none; }
+
+.upload-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+select, input[type=text] {
+  background: #1a1a1e;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.pendientes { list-style: none; padding: 0; margin: 0; }
+.pendientes li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--danger);
+  font-size: 14px;
+}
+.pendientes li:last-child { border-bottom: none; }
+
+a.link { color: var(--accent); text-decoration: none; font-size: 13px; }
