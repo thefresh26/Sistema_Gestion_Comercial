@@ -15,6 +15,8 @@ from __future__ import annotations
 from . import acta_arrendamiento
 from . import certificado_dd
 from . import acta_alcance
+from . import acta_subasta
+from . import informe_subasta
 
 TIPOS = {
     "acta_arrendamiento": {
@@ -37,15 +39,15 @@ TIPOS = {
     },
     "acta_subasta": {
         "etiqueta": "Acta de Certificación de Subasta Electrónica",
-        "descripcion": "Certifica el resultado de una subasta electrónica.",
-        "modulo": None,
-        "disponible": False,
+        "descripcion": "Certifica el resultado de una subasta electrónica. Se busca por FMI, código de subasta o de unidad.",
+        "modulo": acta_subasta,
+        "disponible": True,
     },
     "informe_subasta": {
         "etiqueta": "Informe de Subasta",
-        "descripcion": "Informe consolidado del proceso de subasta de un bien.",
-        "modulo": None,
-        "disponible": False,
+        "descripcion": "Informe consolidado del proceso de subasta de un bien. Requiere subir las 2 capturas de Clarity antes de generar.",
+        "modulo": informe_subasta,
+        "disponible": True,
     },
 }
 

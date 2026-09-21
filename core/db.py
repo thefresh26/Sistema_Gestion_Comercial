@@ -49,6 +49,22 @@ def get_conn_negocio():
         yield conn
 
 
+@contextmanager
+def get_conn_negocio_tuplas():
+    """Igual que `get_conn_negocio()` pero con filas por posición (tuplas),
+    no por nombre de columna -- para reutilizar tal cual el código de los
+    scripts originales (acta_subasta.py, informe_subasta.py), que fueron
+    escritos con psycopg2 y acceso `row[0]`, `row[1]`, etc. Sigue siendo
+    SOLO LECTURA como `get_conn_negocio()`."""
+    if not AZURE_DATABASE_URL:
+        raise RuntimeError(
+            "Falta configurar la variable de entorno AZURE_DATABASE_URL con "
+            "la cadena de conexión de la base de datos de negocio."
+        )
+    with psycopg.connect(AZURE_DATABASE_URL) as conn:
+        yield conn
+
+
 def init_schema() -> None:
     """Crea las tablas si no existen (se puede correr las veces que sea,
     no borra nada)."""
