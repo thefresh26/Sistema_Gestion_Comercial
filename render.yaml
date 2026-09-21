@@ -13,6 +13,10 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: AZURE_DATABASE_URL
+        sync: false
 
 # La tarea programada que actualiza el dashboard "Estadísticas" NO corre
 # aquí en Render (eso pedía tarjeta de crédito para los Cron Jobs) — corre
