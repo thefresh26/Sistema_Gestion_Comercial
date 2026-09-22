@@ -263,7 +263,9 @@ select:focus, input[type=text]:focus {
 [data-theme="dark"] .result-row .fmi { color: var(--text); }
 .result-row .nombre { color: var(--muted); font-size: 13px; margin-top: 3px; }
 
+@keyframes badge-pop { from{opacity:0; transform:scale(.75);} to{opacity:1; transform:scale(1);} }
 .badge {
+  animation: badge-pop .3s var(--ease-overshoot) both;
   font-size: 10.5px;
   font-weight: 700;
   padding: 5px 12px;
@@ -322,6 +324,18 @@ select:focus, input[type=text]:focus {
   background: linear-gradient(90deg, var(--blue), var(--yellow));
   opacity: .85;
 }
+.card::after {
+  content: '';
+  position: absolute; top: 0; left: -60%; width: 35%; height: 100%;
+  background: linear-gradient(115deg, transparent, rgba(11,42,74,.05) 45%, transparent 90%);
+  transform: skewX(-15deg);
+  pointer-events: none;
+  transition: left .6s ease;
+}
+[data-theme="dark"] .card::after {
+  background: linear-gradient(115deg, transparent, rgba(234,241,251,.08) 45%, transparent 90%);
+}
+.card:hover::after { left: 130%; }
 .card:hover { box-shadow: 0 10px 26px -12px rgba(11,42,74,.18); transform: translateY(-1px); }
 [data-theme="dark"] .card:hover { box-shadow: 0 10px 26px -12px rgba(0,0,0,.5); }
 

@@ -226,6 +226,28 @@ body, .top-card, .sec, .login-card, .res-table, #sb{
 .top-card, .sec{transition:box-shadow .32s ease, transform .32s var(--ease-overshoot), background-color .35s ease, border-color .35s ease;}
 .top-card:hover, .sec:hover{box-shadow:0 8px 24px rgba(13,31,60,.12); transform:translateY(-1px);}
 [data-theme="dark"] .top-card:hover, [data-theme="dark"] .sec:hover{box-shadow:0 8px 24px rgba(0,0,0,.4);}
+
+/* Destello diagonal al pasar el mouse por las tarjetas principales. */
+.top-card, .sec{ position:relative; overflow:hidden; }
+.top-card::after, .sec::after{
+  content:"";
+  position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background:linear-gradient(115deg, transparent, rgba(11,42,74,.05) 45%, transparent 90%);
+  transform:skewX(-15deg);
+  pointer-events:none;
+  transition:left .55s ease;
+}
+[data-theme="dark"] .top-card::after, [data-theme="dark"] .sec::after{
+  background:linear-gradient(115deg, transparent, rgba(234,241,251,.10) 45%, transparent 90%);
+}
+.top-card:hover::after, .sec:hover::after{ left:130%; }
+
+/* Las etiquetas (chip/disp) aparecen con un pequeño "pop" al montarse. */
+.chip, .disp{ animation:chip-pop .35s var(--ease-overshoot) both; }
+@keyframes chip-pop{
+  from{ opacity:0; transform:scale(.75); }
+  to{ opacity:1; transform:scale(1); }
+}
 .res-table tr:not(.row-empty):hover td{background:var(--off);}
 
 /* ── Mejora visual real: más aire, acento de color y sombras más

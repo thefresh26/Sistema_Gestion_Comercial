@@ -40,6 +40,14 @@ body{
   background-size:42px 42px, 42px 42px, auto, auto;
   background-repeat:repeat, repeat, no-repeat, no-repeat;
   background-attachment:fixed, fixed, scroll, scroll;
+  background-position:0 0, 0 0, 0% 0%, 100% 100%;
+  animation:glow-drift 24s ease-in-out infinite alternate;
+}
+/* Los halos de marca respiran muy despacio de esquina a esquina; la
+   cuadrícula (primeras dos capas) se queda fija para no marear. */
+@keyframes glow-drift{
+  from{ background-position:0 0, 0 0, 0% 0%, 100% 100%; }
+  to{ background-position:0 0, 0 0, 7% 5%, 93% 95%; }
 }
 
 h1,h2,h3{font-family:var(--sans); margin:0;}
@@ -189,7 +197,8 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
   padding-bottom:10px;
   color:var(--text);
 }
-.brand img{height:26px; border-radius:6px;}
+.brand img{height:26px; border-radius:6px; transition:transform .35s var(--ease-overshoot);}
+.brand:hover img{ transform:rotate(-8deg) scale(1.08); }
 .session-info{
   display:flex;
   align-items:center;
@@ -238,6 +247,19 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
 .tab-btn.active{color:var(--yellow); background:rgba(245,166,35,.14);}
 .tab-strip{height:4px; background:linear-gradient(90deg, var(--blue), var(--yellow));}
 
+/* Subrayado animado bajo la pestaña activa: crece desde el centro. */
+.tab-btn{ position:relative; }
+.tab-btn::after{
+  content:'';
+  position:absolute;
+  left:50%; right:50%; bottom:2px;
+  height:2px;
+  background:var(--yellow);
+  border-radius:2px;
+  transition:left .3s var(--ease-overshoot), right .3s var(--ease-overshoot);
+}
+.tab-btn.active::after{ left:14px; right:14px; }
+
 .tab-panels{flex:1; display:flex; flex-direction:column;}
 .tab-panel{display:none; flex:1; flex-direction:column;}
 .tab-panel.active{display:flex; animation:tab-fade-in .35s ease-out;}
@@ -283,6 +305,19 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
   position:absolute; left:0; top:0; bottom:0; width:3px;
   background:linear-gradient(180deg, var(--blue), var(--yellow));
   opacity:.8;
+}
+/* Destello diagonal que cruza la tarjeta al pasar el mouse. */
+.modulo-card::after{
+  content:"";
+  position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background:linear-gradient(115deg, transparent, rgba(234,241,251,.16) 45%, transparent 90%);
+  transform:skewX(-15deg);
+  pointer-events:none;
+  transition:left .55s ease;
+}
+.modulo-card:hover::after{ left:130%; }
+[data-theme="light"] .modulo-card::after{
+  background:linear-gradient(115deg, transparent, rgba(11,42,74,.06) 45%, transparent 90%);
 }
 .modulo-card:hover{box-shadow:0 14px 28px -12px rgba(0,0,0,.5); border-color:rgba(245,166,35,.4); background:rgba(234,241,251,0.07); transform:translateY(-4px);}
 .modulo-card:active{transform:translateY(-1px) scale(.98); transition-duration:.1s;}
@@ -389,6 +424,11 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
 /* Giro suave del ícono del botón de tema al cambiar */
 .theme-toggle svg{ transition:transform .4s var(--ease-overshoot); }
 .theme-toggle:active svg{ transform:rotate(-25deg) scale(.85); }
+.theme-toggle:hover svg{ transform:rotate(15deg) scale(1.12); }
+
+/* El sol gira lento y constante; invita a explorar el botón. */
+[data-theme="light"] .theme-toggle .icon-sol{ animation:girar-lento 12s linear infinite; }
+@keyframes girar-lento{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
 
 /* Pulso invitando a iniciar sesión */
 .login-card button{ animation:pulso-suave 2.6s ease-in-out infinite; }
@@ -410,6 +450,18 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
     radial-gradient(ellipse 1000px 800px at 0% 0%, rgba(26,168,221,0.16) 0%, rgba(26,168,221,0) 60%),
     radial-gradient(ellipse 1000px 800px at 100% 100%, rgba(245,166,35,0.14) 0%, rgba(245,166,35,0) 60%),
     radial-gradient(ellipse 900px 700px at 50% 100%, rgba(26,184,122,0.07) 0%, rgba(26,184,122,0) 60%);
+  /* 5 capas ahora (antes 4): tamaño/posición explícitos para que el halo
+     esmeralda no herede por accidente el tamaño de la cuadrícula (42px)
+     y salga repetido en miniatura en vez de un halo grande y suave. */
+  background-size:42px 42px, 42px 42px, auto, auto, auto;
+  background-repeat:repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-attachment:fixed, fixed, scroll, scroll, scroll;
+  background-position:0 0, 0 0, 0% 0%, 100% 100%, 50% 100%;
+  animation:glow-drift-claro 24s ease-in-out infinite alternate;
+}
+@keyframes glow-drift-claro{
+  from{ background-position:0 0, 0 0, 0% 0%, 100% 100%, 50% 100%; }
+  to{ background-position:0 0, 0 0, 7% 5%, 93% 95%, 46% 96%; }
 }
 
 /* La tarjeta de login flota mejor con una sombra más marcada sobre el

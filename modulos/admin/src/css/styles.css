@@ -109,7 +109,28 @@ main{max-width:1100px;margin:0 auto;padding:28px;}
   border-radius:12px;
   padding:14px 16px;
   background:var(--off);
+  position:relative;
+  overflow:hidden;
+  transition:box-shadow .28s ease, transform .28s var(--ease-overshoot), border-color .28s ease;
 }
+.ref-tile:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px -6px rgba(13,31,60,.16);
+  border-color:rgba(26,168,221,.35);
+}
+[data-theme="dark"] .ref-tile:hover{box-shadow:0 8px 20px -6px rgba(0,0,0,.5);}
+.ref-tile::after{
+  content:'';
+  position:absolute; top:0; left:-60%; width:35%; height:100%;
+  background:linear-gradient(115deg, transparent, rgba(11,42,74,.05) 45%, transparent 90%);
+  transform:skewX(-15deg);
+  pointer-events:none;
+  transition:left .55s ease;
+}
+[data-theme="dark"] .ref-tile::after{
+  background:linear-gradient(115deg, transparent, rgba(234,241,251,.08) 45%, transparent 90%);
+}
+.ref-tile:hover::after{ left:130%; }
 .ref-tile .ref-rol{
   font-family:var(--heading);
   font-weight:800;
@@ -185,7 +206,8 @@ select.rol-select{
 select.rol-select:hover:not(:disabled){border-color:var(--blue);}
 select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
 
-.badge-estado{
+@keyframes badge-pop{ from{opacity:0; transform:scale(.75);} to{opacity:1; transform:scale(1);} }
+.badge-estado{ animation:badge-pop .3s var(--ease-overshoot) both;
   display:inline-block;
   font-size:11px;
   font-weight:700;
@@ -420,6 +442,18 @@ th{font-size:11.5px;}
   background:linear-gradient(90deg, var(--blue), var(--yellow));
   opacity:.85;
 }
+.chart-card::after{
+  content:'';
+  position:absolute; top:0; left:-60%; width:35%; height:100%;
+  background:linear-gradient(115deg, transparent, rgba(11,42,74,.05) 45%, transparent 90%);
+  transform:skewX(-15deg);
+  pointer-events:none;
+  transition:left .6s ease;
+}
+[data-theme="dark"] .chart-card::after{
+  background:linear-gradient(115deg, transparent, rgba(234,241,251,.08) 45%, transparent 90%);
+}
+.chart-card:hover::after{ left:130%; }
 main{padding-top:34px;}
 header{padding-bottom:2px;}
 
