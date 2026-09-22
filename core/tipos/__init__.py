@@ -41,7 +41,7 @@ TIPOS = {
         "etiqueta": "Informe de Subasta",
         "descripcion": "Informe consolidado del proceso de subasta de un bien. Las cifras de tráfico se traen solas desde la API de Clarity.",
         "modulo": informe_subasta,
-        "disponible": True,
+        "disponible": False,
     },
     "declaracion_juramentada": {
         "etiqueta": "Declaración Juramentada",

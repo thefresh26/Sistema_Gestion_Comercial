@@ -12,9 +12,9 @@
     <label>Tipo de documento</label>
     <select id="tipo-select" style="width:100%; padding:12px 14px; font-size:15px">
       {% for clave, info in tipos.items() %}
-      <option value="{{ clave }}" {% if not info.disponible %}disabled{% endif %}>
-        {{ info.etiqueta }}{% if not info.disponible %} — próximamente{% endif %}
-      </option>
+      {% if info.disponible %}
+      <option value="{{ clave }}">{{ info.etiqueta }}</option>
+      {% endif %}
       {% endfor %}
     </select>
   </div>
