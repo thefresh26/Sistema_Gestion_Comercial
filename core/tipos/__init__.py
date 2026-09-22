@@ -15,6 +15,7 @@ from __future__ import annotations
 from . import certificado_dd
 from . import acta_subasta
 from . import informe_subasta
+from . import declaracion_juramentada
 
 # Acta de Arrendamiento y Acta de Alcance quedaron fuera a propósito: son
 # procesos que el usuario sigue haciendo manualmente (fuera de este
@@ -38,8 +39,14 @@ TIPOS = {
     },
     "informe_subasta": {
         "etiqueta": "Informe de Subasta",
-        "descripcion": "Informe consolidado del proceso de subasta de un bien. Requiere subir las 2 capturas de Clarity antes de generar.",
+        "descripcion": "Informe consolidado del proceso de subasta de un bien. Las cifras de tráfico se traen solas desde la API de Clarity.",
         "modulo": informe_subasta,
+        "disponible": True,
+    },
+    "declaracion_juramentada": {
+        "etiqueta": "Declaración Juramentada",
+        "descripcion": "Declaración juramentada de un participante de subasta. Se busca por cédula, NIT, FMI, código de subasta o de unidad.",
+        "modulo": declaracion_juramentada,
         "disponible": True,
     },
 }
