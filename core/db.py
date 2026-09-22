@@ -106,7 +106,7 @@ def buscar_casos(termino: str, limite: int = 25, tipo_salida: str | None = None)
                 SELECT doc.id, doc.nombre_archivo
                 FROM documentos doc
                 WHERE doc.fmi = c.fmi AND doc.tipo = 'documento_generado'
-                  AND (%(tipo_salida)s IS NULL OR doc.tipo_salida = %(tipo_salida)s)
+                  AND (%(tipo_salida)s::text IS NULL OR doc.tipo_salida = %(tipo_salida)s::text)
                 ORDER BY doc.subido_en DESC
                 LIMIT 1
             ) d ON true
