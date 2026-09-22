@@ -908,6 +908,52 @@ def documentos_generar(tipo: str, fmi: str):
     return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi))
 
 
+@app.route("/documentos/caso/<tipo>/<fmi>/generar-descargar")
+@requires_modulo("documentos")
+def documentos_generar_descargar(tipo: str, fmi: str):
+    """Flujo directo desde la búsqueda: genera (si hace falta) y descarga
+    el documento de una sola vez, sin pasar por la ficha del caso ni por
+    el botón 'Generar ahora'. Si ya existe un documento generado de este
+    tipo para este FMI, se descarga tal cual; si no, se genera primero.
+    Si la generación falla por un dato de negocio no encontrado, se
+    redirige a la ficha del caso con el mensaje de error (ahí sí hace
+    falta navegar, porque no hay nada que descargar)."""
+    info = _tipo_documento_o_404(tipo)
+    if not info:
+        return "Ese tipo de documento todavía no está disponible.", 404
+    modulo = info["modulo"]
+
+    existente = db_documentos.obtener_documento_generado(fmi, tipo)
+    if existente:
+        registrar_log("documentos", session.get("email"), "descargar", f"{tipo}:{fmi}", obtener_ip_cliente())
+        return send_file(
+            io.BytesIO(existente["contenido"]),
+            mimetype=existente["mime_type"],
+            as_attachment=True,
+            download_name=existente["nombre_archivo"],
+        )
+
+    try:
+        contenido, nombre_archivo, _pendientes = modulo.generar(fmi)
+    except ValueError as e:
+        return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi, error=str(e)))
+
+    doc_id = db_documentos.guardar_documento(
+        fmi, "documento_generado", nombre_archivo,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        contenido, tipo_salida=tipo,
+    )
+    db_documentos.registrar_generacion(fmi, doc_id, usuario=session.get("email", ""))
+    registrar_log("documentos", session.get("email"), "generar", f"{tipo}:{fmi} -> {nombre_archivo}", obtener_ip_cliente())
+
+    return send_file(
+        io.BytesIO(contenido),
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=nombre_archivo,
+    )
+
+
 @app.route("/documentos/documento/<int:doc_id>")
 @requires_modulo("documentos")
 def documentos_descargar(doc_id: int):

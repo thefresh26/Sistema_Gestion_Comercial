@@ -45,21 +45,30 @@ async function buscarUnTermino(termino, tipo) {
   return res.json();
 }
 
+// Las 3 consultas disponibles (Certificado DD, Acta de Subasta, Informe
+// de Subasta) no necesitan pasar por la ficha del caso -- los datos se
+// resuelven solos desde Azure/Clarity. Por eso cada fila de resultado
+// apunta directo al endpoint que genera (si hace falta) y descarga el
+// documento en un solo clic, en vez de llevar a la ficha con el botón
+// "Generar ahora".
+function urlGenerarDescargar(tipo, fmi) {
+  return `/documentos/caso/${tipo}/${encodeURIComponent(fmi)}/generar-descargar`;
+}
+
 function filaResultado(c, tipo) {
-  const badge = c.estado || 'pendiente';
-  const href = `/documentos/caso/${tipo}/${encodeURIComponent(c.fmi)}`;
-  const accion = c.documento_id
-    ? `<a class="btn btn-secondary btn-sm" href="/documentos/documento/${c.documento_id}" onclick="event.stopPropagation()">Descargar</a>`
-    : `<span class="badge ${badge}">${badge.replace('_', ' ')}</span>`;
-  return `<div class="result-row" style="cursor:pointer" onclick="window.location.href='${href}'">
+  const yaGenerado = !!c.documento_id;
+  const badge = yaGenerado
+    ? `<span class="badge completo">descargar</span>`
+    : `<span class="badge ${c.estado || 'pendiente'}">generar y descargar</span>`;
+  return `<a class="result-row" href="${urlGenerarDescargar(tipo, c.fmi)}">
     <div><div class="fmi">${c.fmi}</div><div class="nombre">${c.arrendatario_nombre || 'Sin arrendatario'} · ${c.direccion || ''}</div></div>
-    ${accion}
-  </div>`;
+    ${badge}
+  </a>`;
 }
 
 function filaCasoNuevo(termino, tipo) {
-  return `<a class="result-row" href="/documentos/caso/${tipo}/${encodeURIComponent(termino)}">
-    <div><div class="fmi">${termino}</div><div class="nombre">Caso nuevo — clic para crearlo</div></div>
+  return `<a class="result-row" href="${urlGenerarDescargar(tipo, termino)}">
+    <div><div class="fmi">${termino}</div><div class="nombre">Clic para generar y descargar</div></div>
   </a>`;
 }
 
@@ -83,11 +92,19 @@ async function buscar() {
   const idsDescargables = [];
 
   // Búsqueda de un solo término (nombre parcial o FMI): igual que antes,
-  // puede traer varios casos que coincidan.
+  // puede traer varios casos que coincidan. Cuando el término resuelve a
+  // un único caso claro (match exacto o FMI nuevo), se genera y descarga
+  // de una vez -- sin esperar un segundo clic. Si hay varios resultados
+  // (ej. una búsqueda por nombre con varias coincidencias), se deja la
+  // lista para que la persona elija cuál.
   if (terminos.length <= 1) {
     const casos = await buscarUnTermino(textoOriginal, tipo);
     if (casos.length === 0) {
       cont.innerHTML = filaCasoNuevo(textoOriginal, tipo);
+      window.location.href = urlGenerarDescargar(tipo, textoOriginal);
+    } else if (casos.length === 1) {
+      cont.innerHTML = filaResultado(casos[0], tipo);
+      window.location.href = urlGenerarDescargar(tipo, casos[0].fmi);
     } else {
       casos.forEach(c => { if (c.documento_id) idsDescargables.push(c.documento_id); });
       cont.innerHTML = barraDescargaTodos(idsDescargables) + casos.map(c => filaResultado(c, tipo)).join('');

@@ -260,6 +260,21 @@ def obtener_ultimo_documento(fmi: str, tipo: str) -> dict | None:
         ).fetchone()
 
 
+def obtener_documento_generado(fmi: str, tipo_salida: str) -> dict | None:
+    """El documento_generado más reciente de un FMI para un tipo_salida
+    puntual (ej. 'certificado_dd') -- a diferencia de obtener_ultimo_documento,
+    que solo filtra por la columna `tipo` (documento_generado vs un tipo de
+    documento fuente), esta también filtra por tipo_salida, que es lo que
+    necesita el flujo de 'generar y descargar de una vez' desde la búsqueda."""
+    with get_conn() as conn:
+        return conn.execute(
+            """SELECT * FROM documentos WHERE fmi = %(fmi)s AND tipo = 'documento_generado'
+               AND tipo_salida = %(tipo_salida)s
+               ORDER BY subido_en DESC LIMIT 1""",
+            {"fmi": fmi, "tipo_salida": tipo_salida},
+        ).fetchone()
+
+
 # ---------------------------------------------------------------------
 # Contadores / consecutivos
 # ---------------------------------------------------------------------
