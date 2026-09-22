@@ -96,8 +96,8 @@ USER_EMAILS = {
 #                      con semáforo de viabilidad, no FRV)
 MODULOS = {
     "sae": {"comercial", "admin", "sae"},
-    "frv": {"comercial", "juridico", "admin", "comunicaciones"},
-    "vista_inmuebles": {"comercial", "admin", "comunicaciones"},
+    "frv": {"comercial", "juridico", "admin", "comunicaciones", "territoriales"},
+    "vista_inmuebles": {"comercial", "admin", "comunicaciones", "territoriales"},
     "dashboard": {"comercial", "admin"},
     # Panel de permisos: solo lo abre el rol admin (ver pregunta al usuario).
     "admin": {"admin"},
@@ -122,6 +122,7 @@ ROLES_VISIBLES = {
     "admin": "Administrador",
     "sae": "SAE",
     "comunicaciones": "Comunicaciones",
+    "territoriales": "Territoriales",
     "sin_acceso": "Sin acceso",
 }
 
