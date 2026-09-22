@@ -200,27 +200,54 @@ def buscar_participante(identificador: str) -> list[dict]:
         return _participantes_de_subasta(conn, auction_uuid)
 
 
+def _nombre_archivo_participante(fmi: str, p: dict, usados: set[str]) -> str:
+    """Arma el nombre de archivo de un participante incluyendo su nombre,
+    evitando que dos participantes con el mismo nombre truncado se
+    sobrescriban entre sí dentro del mismo ZIP."""
+    nombre_corto = p["nombre"].replace(" ", "_")[:30]
+    base = f"JURA_{fmi}_{nombre_corto}"
+    nombre_archivo = f"{base}.docx"
+    contador = 2
+    while nombre_archivo in usados:
+        nombre_archivo = f"{base}_{contador}.docx"
+        contador += 1
+    usados.add(nombre_archivo)
+    return nombre_archivo
+
+
 def generar(fmi: str) -> tuple[bytes, str, list[str]]:
     """`fmi` aquí es en realidad el identificador (cédula, NIT, FMI,
-    código de subasta o unidad). Si resuelve a más de un participante,
-    por ahora se genera el primero -- se puede refinar la interfaz más
-    adelante para elegir entre varios, igual que hacía el script original
-    por consola."""
+    código de subasta o unidad). Si resuelve a un solo participante, se
+    devuelve su .docx directamente; si resuelve a varios (por ejemplo, al
+    buscar por FMI/código de subasta en vez de por cédula), se genera UNA
+    Declaración Juramentada por cada uno y se entregan todas juntas en un
+    .zip, cada archivo nombrado con el participante correspondiente."""
     participantes = buscar_participante(fmi)
     if not participantes:
         raise ValueError(
             f"No se encontró ninguna persona, empresa, subasta, FMI ni unidad "
             f"inmobiliaria con el identificador '{fmi}'."
         )
-    pendientes = []
-    if len(participantes) > 1:
-        pendientes.append(
-            f"Se encontraron {len(participantes)} participantes para este identificador; "
-            f"se generó el del primero de la lista ({participantes[0]['nombre']}). "
-            f"Revisa si necesitas alguno de los otros."
-        )
-    p = participantes[0]
-    contenido = _generar_docx_bytes(p)
-    nombre_corto = p["nombre"].replace(" ", "_")[:30]
-    nombre_archivo = f"JURA_{fmi}_{nombre_corto}.docx"
-    return contenido, nombre_archivo, pendientes
+
+    if len(participantes) == 1:
+        p = participantes[0]
+        contenido = _generar_docx_bytes(p)
+        nombre_archivo = _nombre_archivo_participante(fmi, p, set())
+        return contenido, nombre_archivo, []
+
+    usados: set[str] = set()
+    salida_zip = io.BytesIO()
+    with zipfile.ZipFile(salida_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+        for p in participantes:
+            contenido_docx = _generar_docx_bytes(p)
+            nombre_interno = _nombre_archivo_participante(fmi, p, usados)
+            zf.writestr(nombre_interno, contenido_docx)
+
+    nombres = ", ".join(p["nombre"] for p in participantes)
+    pendientes = [
+        f"Se encontraron {len(participantes)} participantes para este identificador "
+        f"({nombres}); se generó una Declaración Juramentada por cada uno, incluidas "
+        f"todas en este .zip."
+    ]
+    nombre_zip = f"JURA_{fmi}_{len(participantes)}_participantes.zip"
+    return salida_zip.getvalue(), nombre_zip, pendientes
