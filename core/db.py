@@ -12,6 +12,7 @@ from contextlib import contextmanager
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg.types.json import Json
 
 # La cadena de conexión de Neon se lee de una variable de entorno, nunca
 # queda escrita en el código -- así el repositorio puede ser público sin
@@ -137,6 +138,12 @@ def upsert_caso(fmi: str, datos: dict) -> None:
         "estado", "pendientes",
     ]
     datos = {c: datos.get(c) for c in columnas}
+    # `pendientes` es una columna JSONB -- si se manda la lista de Python
+    # tal cual, psycopg la serializa como arreglo de Postgres ({"a","b"})
+    # en vez de JSON válido (["a","b"]), y Postgres rechaza el INSERT con
+    # "invalid input syntax for type json" en cuanto la lista no está vacía.
+    # Json(...) fuerza la serialización correcta.
+    datos["pendientes"] = Json(datos.get("pendientes") or [])
     with get_conn() as conn:
         conn.execute(
             """

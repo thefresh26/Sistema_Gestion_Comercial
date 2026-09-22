@@ -864,6 +864,16 @@ def _tipo_documento_o_404(tipo: str):
     return info
 
 
+def _mime_type_por_nombre(nombre_archivo: str) -> str:
+    """La mayoría de tipos de documento siempre generan un .docx, pero
+    Declaración Juramentada puede entregar un .zip cuando encuentra varios
+    participantes (una Declaración por cada uno). El mimetype debe
+    corresponder al archivo real, o el navegador/Word no lo puede abrir."""
+    if nombre_archivo.lower().endswith(".zip"):
+        return "application/zip"
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
 @app.route("/documentos/")
 @requires_modulo("documentos")
 def documentos_index():
@@ -955,7 +965,7 @@ def documentos_generar(tipo: str, fmi: str):
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        _mime_type_por_nombre(nombre_archivo),
         contenido, tipo_salida=tipo,
     )
     db_documentos.registrar_generacion(fmi, doc_id, usuario=session.get("email", ""))
@@ -996,7 +1006,7 @@ def documentos_generar_descargar(tipo: str, fmi: str):
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        _mime_type_por_nombre(nombre_archivo),
         contenido, tipo_salida=tipo,
     )
     db_documentos.registrar_generacion(fmi, doc_id, usuario=session.get("email", ""))
@@ -1004,7 +1014,7 @@ def documentos_generar_descargar(tipo: str, fmi: str):
 
     return send_file(
         io.BytesIO(contenido),
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mimetype=_mime_type_por_nombre(nombre_archivo),
         as_attachment=True,
         download_name=nombre_archivo,
     )
