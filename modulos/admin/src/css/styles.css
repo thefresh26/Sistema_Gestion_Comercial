@@ -332,6 +332,30 @@ select.rol-select:disabled{cursor:not-allowed;opacity:.6;}
 .toast.visible{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast.error{background:var(--red);}
 
+/* ── RESPONSIVE (celular) ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  .header-inner { padding: 20px 16px 22px; align-items: flex-start; }
+  .brand-title { font-size: 22px; }
+  .brand-sub { font-size: 12px; }
+  .header-botones { width: 100%; }
+  .header-botones .btn-nuevo,
+  .header-botones .btn-secundario-header { flex: 1; min-height: 44px; justify-content: center; }
+
+  main { padding: 16px; }
+
+  .chart-card { padding: 16px; }
+  .ref-grid { grid-template-columns: 1fr; }
+
+  table { font-size: 12.5px; }
+  th, td { padding: 10px 12px; }
+
+  select.rol-select { min-height: 40px; }
+
+  .modal-card { padding: 22px 18px 18px; }
+  .modal-botones { flex-direction: column-reverse; gap: 8px; }
+  .modal-botones button { width: 100%; min-height: 44px; }
+}
+
 /* Respeta "reducir movimiento" del sistema operativo: apaga animaciones y
    transiciones en todo el módulo sin tener que tocar cada regla. */
 @media (prefers-reduced-motion: reduce){
