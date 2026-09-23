@@ -12,6 +12,8 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: INTEGRACION_API_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: AZURE_DATABASE_URL

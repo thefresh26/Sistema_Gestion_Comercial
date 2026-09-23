@@ -37,7 +37,7 @@ body{background:var(--off);color:var(--text);font-family:var(--body);min-height:
 .search-label{font-family:var(--sans);font-size:10px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;display:block;}
 .srow{display:flex;gap:10px;}
 .sinput{flex:1;background:rgba(255,255,255,.95);border:2px solid transparent;border-radius:10px;padding:14px 18px;font-family:'Courier New',monospace;font-size:17px;font-weight:600;color:var(--navy);outline:none;transition:border-color .3s ease,box-shadow .3s ease;letter-spacing:.05em;}
-.sinput::placeholder{color:var(--muted);font-size:13px;font-weight:400;letter-spacing:0;font-family:var(--body);}
+.sinput::placeholder{color:#6b7a99;font-size:13px;font-weight:400;letter-spacing:0;font-family:var(--body);}
 .sinput:focus{border-color:var(--yellow);box-shadow:0 0 0 3px rgba(245,168,0,.2);}
 .sbtn{background:var(--yellow);color:var(--navy);border:none;border-radius:10px;padding:0 28px;font-family:var(--sans);font-weight:800;font-size:14px;cursor:pointer;transition:background .32s ease, transform .3s var(--ease-overshoot), box-shadow .32s ease;letter-spacing:.02em;white-space:nowrap;}
 .sbtn:hover{background:var(--yellow2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(245,168,0,.35);}

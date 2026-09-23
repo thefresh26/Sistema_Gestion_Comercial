@@ -26,6 +26,7 @@ Variables de entorno necesarias (Render → Settings → Environment):
 
 import os
 import json
+import hmac
 import requests
 from functools import wraps
 from flask import Flask, send_from_directory, request, session, jsonify, render_template, send_file, redirect, url_for
@@ -55,6 +56,11 @@ app.config.update(
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+
+# Clave para la API de integración externa (consulta de inmuebles por FMI).
+# La usa un sistema externo (no un usuario logueado), así que se valida con
+# un header propio (X-API-Key), nunca con la sesión de Flask.
+INTEGRACION_API_KEY = os.environ.get("INTEGRACION_API_KEY", "")
 
 # Directorio de personal exportado de Microsoft 365 (Centro de administración
 # → Usuarios → Exportar), correo -> nombre completo. Se usa SOLO para
@@ -90,8 +96,8 @@ USER_EMAILS = {
 #                      con semáforo de viabilidad, no FRV)
 MODULOS = {
     "sae": {"comercial", "admin", "sae"},
-    "frv": {"comercial", "juridico", "admin", "comunicaciones"},
-    "vista_inmuebles": {"comercial", "admin", "comunicaciones"},
+    "frv": {"comercial", "juridico", "admin", "comunicaciones", "territoriales"},
+    "vista_inmuebles": {"comercial", "admin", "comunicaciones", "territoriales"},
     "dashboard": {"comercial", "admin"},
     # Panel de permisos: solo lo abre el rol admin (ver pregunta al usuario).
     "admin": {"admin"},
@@ -116,6 +122,7 @@ ROLES_VISIBLES = {
     "admin": "Administrador",
     "sae": "SAE",
     "comunicaciones": "Comunicaciones",
+    "territoriales": "Territoriales",
     "sin_acceso": "Sin acceso",
 }
 
@@ -214,6 +221,19 @@ def requires_auth(f):
     def decorated(*args, **kwargs):
         if "usuario" not in session:
             return jsonify({"error": "No autenticado"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+def requires_api_key(f):
+    """Para endpoints usados por sistemas externos (no personas): se
+    autentican con un header X-API-Key, no con la sesión de Flask."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not INTEGRACION_API_KEY:
+            return jsonify({"error": "API de integración no configurada"}), 503
+        clave_recibida = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(clave_recibida, INTEGRACION_API_KEY):
+            return jsonify({"error": "Clave de integración inválida"}), 401
         return f(*args, **kwargs)
     return decorated
 
@@ -449,6 +469,43 @@ def vista_inmuebles_buscar():
 
     # Siempre una lista (aunque haya sido un solo FMI) — el frontend decide
     # cómo mostrarla según cuántos resultados vengan.
+    return jsonify(resultados)
+
+
+# ── API DE INTEGRACIÓN EXTERNA ──────────────────────────────────────────
+# Para que un sistema externo (no un usuario del portal) pueda consultar
+# inmuebles por FMI, autenticado con una clave de integración fija en vez
+# de un login de usuario. Reutiliza la misma RPC que ya usa Vista_Inmuebles.
+
+@app.route("/api/integracion/inmuebles")
+@requires_api_key
+def integracion_inmuebles():
+    fmis_raw = request.args.get("fmi", "")
+    fmis = [f.strip() for f in fmis_raw.replace("/", ",").split(",") if f.strip()]
+    if not fmis:
+        return jsonify({"error": "Falta el parámetro fmi"}), 400
+    if len(fmis) > 50:
+        return jsonify({"error": "Máximo 50 FMI por consulta"}), 400
+
+    resultados = []
+    for fmi in fmis:
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/buscar_inmueble_activos",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={"p_fmi": fmi},
+            timeout=15,
+        )
+        if r.status_code != 200:
+            return jsonify({"error": "Error al consultar la base de datos"}), 502
+        dato = r.json()
+        if dato:
+            resultados.append(dato)
+
+    registrar_log("integracion_api", "api-externa", "busqueda", ", ".join(fmis), obtener_ip_cliente())
     return jsonify(resultados)
 
 

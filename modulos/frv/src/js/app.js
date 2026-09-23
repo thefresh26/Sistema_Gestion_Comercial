@@ -15,8 +15,10 @@ async function loadData(){
     document.getElementById('resultsCount').textContent = 'No se pudo cargar data.json — colócalo junto a este HTML.';
     return;
   }
-  const primerPredio = DATA[0] || {};
-  hayColumnaAvaluo = String(primerPredio['TIENE AVALÚO CATASTRAL'] || '').trim() !== '' || String(primerPredio['TIENE AVALÚO COMERCIAL'] || '').trim() !== '';
+  // Revisa si ALGUN predio de la lista tiene avaluo (catastral o comercial),
+  // no solo el primero -- evita que un predio sin avaluo oculte los filtros
+  // de avaluo para todos los demas.
+  hayColumnaAvaluo = DATA.some(d => String(d['TIENE AVALÚO CATASTRAL'] || '').trim() !== '' || String(d['TIENE AVALÚO COMERCIAL'] || '').trim() !== '');
 
   document.getElementById('thAvaluo').style.display = hayColumnaAvaluo ? '' : 'none';
   document.getElementById('filterAnioAval').style.display = hayColumnaAvaluo ? '' : 'none';
