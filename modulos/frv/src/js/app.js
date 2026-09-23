@@ -15,8 +15,11 @@ async function loadData(){
     document.getElementById('resultsCount').textContent = 'No se pudo cargar data.json — colócalo junto a este HTML.';
     return;
   }
-  const primerPredio = DATA[0] || {};
-  hayColumnaAvaluo = String(primerPredio['AÑO AVALÚO'] || '').trim() !== '';
+  // Antes esto miraba solo el primer predio de la lista -- si ese predio
+  // en particular no tenia avaluo cargado, ocultaba los filtros de avaluo
+  // para TODOS, aunque otros predios si tuvieran el dato. Ahora revisa si
+  // ALGUN predio de la lista tiene avaluo, que es la pregunta real.
+  hayColumnaAvaluo = DATA.some(d => String(d['AÑO AVALÚO'] || '').trim() !== '');
 
   document.getElementById('thAvaluo').style.display = hayColumnaAvaluo ? '' : 'none';
   document.getElementById('filterAnioAval').style.display = hayColumnaAvaluo ? '' : 'none';
