@@ -16,7 +16,7 @@ async function loadData(){
     return;
   }
   const primerPredio = DATA[0] || {};
-  hayColumnaAvaluo = String(primerPredio['AÑO AVALÚO'] || '').trim() !== '';
+  hayColumnaAvaluo = String(primerPredio['TIENE AVALÚO CATASTRAL'] || '').trim() !== '' || String(primerPredio['TIENE AVALÚO COMERCIAL'] || '').trim() !== '';
 
   document.getElementById('thAvaluo').style.display = hayColumnaAvaluo ? '' : 'none';
   document.getElementById('filterAnioAval').style.display = hayColumnaAvaluo ? '' : 'none';
@@ -50,7 +50,7 @@ function populateFilters(){
     selE.appendChild(o);
   });
 
-  const anios = [...new Set(DATA.map(d=>parseInt(d['AÑO AVALÚO'], 10)).filter(a=>a>2000))].sort((a,b)=>b-a);
+  const anios = [...new Set(DATA.map(d=>parseInt(d['AÑO AVALÚO CATASTRAL'], 10)).filter(a=>a>2000))].sort((a,b)=>b-a);
   const selA = document.getElementById('filterAnioAval');
   anios.forEach(a=>{
     const o = document.createElement('option');
@@ -70,13 +70,11 @@ function computeStats(){
 function isYes(v){ return (v||'').toString().trim().toUpperCase().startsWith('S'); }
 
 function tieneAvaluoValido(d){
-  const anio = parseInt(d['AÑO AVALÚO'], 10);
-  return Number.isInteger(anio) && anio > 2000;
+  return isYes(d['TIENE AVALÚO CATASTRAL']);
 }
 
 function tieneAvaluoComercialValido(d){
-  const anio = parseInt(d['AÑO AVALÚO COMERCIAL'], 10);
-  return Number.isInteger(anio) && anio > 2000;
+  return isYes(d['TIENE AVALÚO COMERCIAL']);
 }
 
 function tieneFotoValida(d){
@@ -115,7 +113,7 @@ function applyFilters(){
     const esExtinto = (d['EXTINCIÓN DOMINIO']||'').toString().trim().toUpperCase() === 'SI';
     if(state.ext === 'si' && !esExtinto) return false;
     if(state.ext === 'no' && esExtinto) return false;
-    if(state.anioAval && String(parseInt(d['AÑO AVALÚO'], 10)) !== state.anioAval) return false;
+    if(state.anioAval && String(parseInt(d['AÑO AVALÚO CATASTRAL'], 10)) !== state.anioAval) return false;
     return true;
   });
 
@@ -188,9 +186,9 @@ function render(){
             ? `<span class="badge si"><span class="dot"></span>Foto&nbsp;·&nbsp;${d['CANT_FOTOS_LOCAL']||0}</span>`
             : `<span class="badge no"><span class="dot"></span>Sin foto</span>`}
           ${aval
-            ? `<span class="badge si"><span class="dot"></span>Avalúo&nbsp;${d['AÑO AVALÚO']||''}</span>`
+            ? `<span class="badge si"><span class="dot"></span>Avalúo&nbsp;${d['AÑO AVALÚO CATASTRAL']||''}</span>`
             : `<span class="badge no"><span class="dot"></span>Sin avalúo</span>`}
-          ${aval && d['VALOR AVALÚO'] ? `<span class="card-valor">${fmtMoney(d['VALOR AVALÚO'])}</span>` : ''}
+          ${aval && d['VALOR AVALÚO CATASTRAL'] ? `<span class="card-valor">${fmtMoney(d['VALOR AVALÚO CATASTRAL'])}</span>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -204,8 +202,8 @@ function render(){
       const foto = cantFotosLocal > 0;
       const aval = tieneAvaluoValido(d);
       let anioAvaluoLabel = 'Sí';
-      if(d['AÑO AVALÚO']){
-        const anio = parseInt(d['AÑO AVALÚO'], 10);
+      if(d['AÑO AVALÚO CATASTRAL']){
+        const anio = parseInt(d['AÑO AVALÚO CATASTRAL'], 10);
         anioAvaluoLabel = (Number.isInteger(anio) && anio >= 2000) ? anio : '—';
       }
       // Entrada escalonada breve (tope de 12 filas visibles a la vez).
@@ -286,7 +284,7 @@ function openModal(idx){
   const tieneValor = v => v !== undefined && v !== null && String(v).trim() !== '';
 
   const tieneDatosAvaluo = [
-    d['VALOR AVALÚO'], d['AÑO AVALÚO'], d['TIPO AVALÚO'], d['FECHA AVALÚO'],
+    d['VALOR AVALÚO CATASTRAL'], d['AÑO AVALÚO CATASTRAL'], d['FECHA AVALÚO CATASTRAL'],
     d['VALOR AVALÚO COMERCIAL'], d['AÑO AVALÚO COMERCIAL'], d['FECHA AVALÚO COMERCIAL']
   ].some(tieneValor);
 
@@ -294,11 +292,11 @@ function openModal(idx){
   document.getElementById('avaluoGrid').style.display = tieneDatosAvaluo ? '' : 'none';
 
   if(tieneDatosAvaluo){
-    document.getElementById('mValorAvaluo').textContent = fmtMoney(d['VALOR AVALÚO']);
-    document.getElementById('mConAvaluoComerc').textContent = d['CON AVALÚO COMERC.'] || '—';
-    document.getElementById('mAnioAvaluo').textContent = d['AÑO AVALÚO'] || '—';
-    document.getElementById('mTipoAvaluo').textContent = d['TIPO AVALÚO'] || '—';
-    document.getElementById('mFechaAvaluo').textContent = d['FECHA AVALÚO'] || '—';
+    document.getElementById('mValorAvaluo').textContent = fmtMoney(d['VALOR AVALÚO CATASTRAL']);
+    document.getElementById('mConAvaluoComerc').textContent = d['TIENE AVALÚO COMERCIAL'] || '—';
+    document.getElementById('mAnioAvaluo').textContent = d['AÑO AVALÚO CATASTRAL'] || '—';
+    document.getElementById('mTipoAvaluo').textContent = 'Catastral';
+    document.getElementById('mFechaAvaluo').textContent = d['FECHA AVALÚO CATASTRAL'] || '—';
 
     document.getElementById('mValorAvaluoComercialField').style.display = tieneValor(d['VALOR AVALÚO COMERCIAL']) ? '' : 'none';
     document.getElementById('mValorAvaluoComercial').textContent = fmtMoney(d['VALOR AVALÚO COMERCIAL']);
