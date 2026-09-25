@@ -127,19 +127,24 @@ def _participantes_desde_cedula(conn, identificacion: str) -> list[dict]:
 
 
 def _participantes_de_subasta(conn, auction_uuid: str) -> list[dict]:
+    # LEFT JOIN a proposito: con JOIN normal, cualquier inscrito cuyo
+    # client_id no tuviera credenciales vinculadas (o cuyo tercero no
+    # estuviera enlazado) desaparecia en silencio de la lista, aunque SI
+    # estuviera inscrito en la subasta -- por eso a veces "no traia a
+    # todos" los participantes de un FMI.
     filas = conn.execute(
         """
-        SELECT ap.id AS puja_id, ct.nombre_principal, ct.identificacion_numero,
-               ct.identificacion_tipo
+        SELECT ap.id AS puja_id, ap.client_id, ct.nombre_principal,
+               ct.identificacion_numero, ct.identificacion_tipo
         FROM polybid.auction_participants ap
-        JOIN polibid_credentials pc ON pc.client_id = ap.client_id
-        JOIN contact_terceros ct ON ct.id = pc.contact_tercero_id
+        LEFT JOIN polibid_credentials pc ON pc.client_id = ap.client_id
+        LEFT JOIN contact_terceros ct ON ct.id = pc.contact_tercero_id
         WHERE ap.auction_id = %(id)s::uuid
         """,
         {"id": auction_uuid},
     ).fetchall()
     return [{
-        "nombre": (f["nombre_principal"] or "—").upper(),
+        "nombre": (f["nombre_principal"] or "Sin nombre registrado").upper(),
         "cedula": str(f["identificacion_numero"] or "—"),
         "id_puja": str(f["puja_id"]) if f["puja_id"] is not None else "—",
     } for f in filas]

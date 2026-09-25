@@ -26,6 +26,7 @@ Variables de entorno necesarias (Render → Settings → Environment):
 
 import os
 import json
+import re
 import hmac
 import requests
 from functools import wraps
@@ -895,8 +896,35 @@ def documentos_style():
 @app.route("/api/documentos/buscar")
 @requires_modulo("documentos")
 def documentos_buscar():
-    termino = request.args.get("q", "")
+    termino = request.args.get("q", "").strip()
     tipo = request.args.get("tipo", "")
+
+    # El Certificado DD es distinto a los demas tipos: un mismo FMI/codigo
+    # de subasta puede tener VARIAS personas asociadas (cada oferente
+    # necesita su propio certificado), mientras que la tabla local "casos"
+    # esta pensada para 1 FMI = 1 caso -- por eso una busqueda por FMI solo
+    # devolvia 1 fila aunque hubiera mas gente inscrita en esa subasta. Para
+    # este tipo se resuelve en vivo contra la base de negocio en vez de
+    # "casos", y se devuelve una fila por cada persona encontrada.
+    if tipo == "certificado_dd" and termino and not termino.isdigit():
+        from core.tipos.certificado_dd import buscar_participante
+        try:
+            participantes = buscar_participante(termino)
+        except Exception:
+            participantes = []
+        resultados = []
+        for p in participantes:
+            identificador_doc = re.sub(r"\D", "", p["cedula"]) or p["cedula"]
+            existente = db_documentos.obtener_documento_generado(identificador_doc, "certificado_dd")
+            resultados.append({
+                "fmi": identificador_doc,
+                "arrendatario_nombre": p["nombre"],
+                "direccion": f"C.C./NIT: {p['cedula']}",
+                "documento_id": existente["id"] if existente else None,
+                "estado": None,
+            })
+        return jsonify(resultados)
+
     resultados = db_documentos.buscar_casos(termino, tipo_salida=tipo or None)
     return jsonify(resultados)
 
