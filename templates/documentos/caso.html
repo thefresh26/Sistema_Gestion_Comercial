@@ -96,18 +96,24 @@ async function cargarOferentes() {
       cont.innerHTML = `<p style="color:var(--text-dim); font-size:14px">Esta subasta (código ${datos.codigo_subasta}) no tiene ningún oferente inscrito.</p>`;
       return;
     }
-    const filas = datos.oferentes.map(o => `
+    const filas = datos.oferentes.map(o => {
+      const etiquetaTipo = o.es_juridica ? 'Persona jurídica' : 'Persona natural';
+      const etiquetaId = o.es_juridica ? 'NIT' : (o.tipo_identificacion && o.tipo_identificacion !== '—' ? o.tipo_identificacion : 'C.C.');
+      return `
       <div class="doc-row" style="${o.gano ? 'border-left:3px solid #1ab87a; padding-left:10px' : ''}">
         <div>
-          <b>${o.nombre}</b>${o.gano ? ' &middot; <span style="color:#1ab87a; font-weight:700">GANADOR</span>' : ''}
+          <b>${o.nombre}</b>
+          <span style="font-size:11px; color:var(--text-dim); border:1px solid var(--border); border-radius:100px; padding:1px 8px; margin-left:6px">${etiquetaTipo}</span>
+          ${o.gano ? ' &middot; <span style="color:#1ab87a; font-weight:700">GANADOR</span>' : ''}
           <div style="font-size:12.5px; color:var(--text-dim)">
-            C.C./NIT: ${o.cedula} &middot; Inscrito: ${o.se_registro}
+            ${etiquetaId}: ${o.cedula} &middot; ${o.es_juridica ? 'Ciudad' : 'Lugar de expedición'}: ${o.ciudad_o_lugar_exp} &middot; Inscrito: ${o.se_registro}
             ${o.status_puja ? ` &middot; Estado de la puja: ${o.status_puja}` : ' &middot; Sin puja registrada'}
           </div>
         </div>
         <div style="font-weight:700">${o.monto ? '$ ' + o.monto : '—'}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
     cont.innerHTML = `<p style="color:var(--text-dim); font-size:13px">Código de subasta: ${datos.codigo_subasta} &middot; ${datos.total_oferentes} oferente(s)</p>${filas}`;
   } catch (err) {
     cont.innerHTML = `<p style="color:#c0392b; font-size:14px">No se pudo consultar la subasta: ${err}</p>`;

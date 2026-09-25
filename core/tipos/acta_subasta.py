@@ -664,7 +664,8 @@ def obtener_oferentes(identificador: str) -> dict:
             cur.execute(
                 """
                 SELECT
-                    ct.nombre_principal, ct.identificacion_numero, p.client_id,
+                    ct.nombre_principal, ct.identificacion_numero, ct.identificacion_tipo,
+                    ct.lugar_expedicion_doc, ct.ciudad, p.client_id,
                     (SELECT b.amount FROM polybid.auction_bids b
                      WHERE b.auction_id = p.auction_id AND b.client_id = p.client_id
                      ORDER BY b.created_at DESC LIMIT 1) AS ultima_puja,
@@ -682,11 +683,19 @@ def obtener_oferentes(identificador: str) -> dict:
             )
             filas = cur.fetchall()
 
+    # Igual que en el Acta (_generar_docx_bytes / ciudad_cedula): una
+    # persona juridica se identifica por identificacion_tipo == 'NIT', y
+    # para esas se muestra la ciudad en vez del lugar de expedicion de la
+    # cedula (que no aplica a una empresa).
     oferentes = []
-    for nombre, cedula, client_id, monto, status, se_registro in filas:
+    for nombre, cedula, tipo_id, lugar_exp, ciudad, client_id, monto, status, se_registro in filas:
+        es_juridica = (tipo_id or "").upper() == "NIT"
         oferentes.append({
             "nombre": (nombre or "Sin nombre registrado").upper(),
             "cedula": str(cedula or "—"),
+            "tipo_identificacion": tipo_id or ("NIT" if es_juridica else "—"),
+            "es_juridica": es_juridica,
+            "ciudad_o_lugar_exp": (ciudad if es_juridica else lugar_exp) or "—",
             "client_id": str(client_id) if client_id is not None else "—",
             "monto": _fmt_numero(monto) if monto else None,
             "status_puja": status or None,
