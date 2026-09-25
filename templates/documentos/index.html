@@ -55,19 +55,35 @@ function urlGenerarDescargar(tipo, fmi) {
   return `/documentos/caso/${tipo}/${encodeURIComponent(fmi)}/generar-descargar`;
 }
 
+// Solo estos dos tipos tienen "oferentes de subasta" asociados (los datos
+// viven en las tablas de polybid, no en los otros tipos de documento).
+const TIPOS_CON_OFERENTES = ['acta_subasta', 'informe_subasta'];
+
+function enlaceOferentes(tipo, fmi) {
+  if (!TIPOS_CON_OFERENTES.includes(tipo)) return '';
+  const url = `/documentos/caso/${tipo}/${encodeURIComponent(fmi)}`;
+  return `<a class="link-oferentes" href="${url}" target="_blank" rel="noopener">Ver oferentes</a>`;
+}
+
 function filaResultado(c, tipo) {
   const yaGenerado = !!c.documento_id;
   const etiqueta = yaGenerado ? 'Descargar' : 'Generar y descargar';
   return `<div class="result-row">
     <div><div class="fmi">${c.fmi}</div><div class="nombre">${c.arrendatario_nombre || 'Sin arrendatario'} · ${c.direccion || ''}</div></div>
-    <button type="button" class="btn-generar" data-url="${urlGenerarDescargar(tipo, c.fmi)}">${etiqueta}</button>
+    <div class="acciones-fila">
+      ${enlaceOferentes(tipo, c.fmi)}
+      <button type="button" class="btn-generar" data-url="${urlGenerarDescargar(tipo, c.fmi)}">${etiqueta}</button>
+    </div>
   </div>`;
 }
 
 function filaCasoNuevo(termino, tipo) {
   return `<div class="result-row">
     <div><div class="fmi">${termino}</div><div class="nombre">Clic para generar y descargar</div></div>
-    <button type="button" class="btn-generar" data-url="${urlGenerarDescargar(tipo, termino)}">Generar y descargar</button>
+    <div class="acciones-fila">
+      ${enlaceOferentes(tipo, termino)}
+      <button type="button" class="btn-generar" data-url="${urlGenerarDescargar(tipo, termino)}">Generar y descargar</button>
+    </div>
   </div>`;
 }
 

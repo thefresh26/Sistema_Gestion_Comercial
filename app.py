@@ -935,6 +935,30 @@ def documentos_ver_caso(tipo: str, fmi: str):
     )
 
 
+@app.route("/documentos/caso/<tipo>/<fmi>/oferentes")
+@requires_modulo("documentos")
+def documentos_oferentes(tipo: str, fmi: str):
+    """Lista todos los oferentes inscritos en la subasta de este FMI,
+    incluyendo al ganador -- a diferencia del Acta de Subasta, que solo
+    incluye a quien tiene una puja con monto registrado. Sirve para
+    diagnosticar casos donde el Acta sale "sin ganador": aqui se ve si
+    el problema es que nadie quedo marcado como ganador en la base de
+    datos, o si el ganador esta inscrito pero sin puja registrada."""
+    if not _tipo_documento_o_404(tipo):
+        return jsonify({"error": "Ese tipo de documento todavía no está disponible."}), 404
+    if tipo not in ("acta_subasta", "informe_subasta"):
+        return jsonify({"error": "Este tipo de documento no tiene oferentes de subasta asociados."}), 400
+
+    from core.tipos.acta_subasta import obtener_oferentes
+    try:
+        datos = obtener_oferentes(fmi)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+    registrar_log("documentos", session.get("email"), "ver_oferentes", f"{tipo}:{fmi}", obtener_ip_cliente())
+    return jsonify(datos)
+
+
 @app.route("/documentos/caso/<tipo>/<fmi>/documentos", methods=["POST"])
 @requires_modulo("documentos")
 def documentos_subir_documento(tipo: str, fmi: str):

@@ -644,6 +644,63 @@ def _generar_docx_bytes(datos: dict) -> bytes:
     return salida.getvalue()
 
 
+def obtener_oferentes(identificador: str) -> dict:
+    """Lista TODOS los oferentes inscritos en la subasta asociada a este
+    FMI/codigo/unidad, incluyendo su ultima puja y si quedaron marcados
+    como ganadores (status 'WINNING').
+
+    A diferencia de lo que se imprime en el Acta -- que solo incluye a
+    quien SI tiene una puja registrada con monto, y elige un ganador solo
+    si hay alguien con status 'WINNING' o, en su defecto, la puja mas alta
+    -- aqui se listan todos los inscritos aunque no hayan llegado a pujar.
+    Esto es justo para diagnosticar casos donde el Acta sale sin ganador:
+    o nadie tiene status 'WINNING' y tampoco hay pujas con monto, o el
+    ganador real esta inscrito pero sin puja registrada (por lo que el
+    Acta no puede saber que gano)."""
+    with db.get_conn_negocio_tuplas() as conn:
+        auction_uuid = _resolver_identificador(conn, identificador)
+        subasta = _obtener_subasta(conn, auction_uuid)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    ct.nombre_principal, ct.identificacion_numero, p.client_id,
+                    (SELECT b.amount FROM polybid.auction_bids b
+                     WHERE b.auction_id = p.auction_id AND b.client_id = p.client_id
+                     ORDER BY b.created_at DESC LIMIT 1) AS ultima_puja,
+                    (SELECT b.status FROM polybid.auction_bids b
+                     WHERE b.auction_id = p.auction_id AND b.client_id = p.client_id
+                     ORDER BY b.created_at DESC LIMIT 1) AS status_puja,
+                    p.created_at
+                FROM polybid.auction_participants p
+                LEFT JOIN polibid_credentials pc ON pc.client_id = p.client_id
+                LEFT JOIN contact_terceros ct ON ct.id = pc.contact_tercero_id
+                WHERE p.auction_id = %s::uuid
+                ORDER BY ultima_puja DESC NULLS LAST, p.created_at
+                """,
+                (auction_uuid,),
+            )
+            filas = cur.fetchall()
+
+    oferentes = []
+    for nombre, cedula, client_id, monto, status, se_registro in filas:
+        oferentes.append({
+            "nombre": (nombre or "Sin nombre registrado").upper(),
+            "cedula": str(cedula or "—"),
+            "client_id": str(client_id) if client_id is not None else "—",
+            "monto": _fmt_numero(monto) if monto else None,
+            "status_puja": status or None,
+            "gano": (status or "").upper() == "WINNING",
+            "se_registro": _fmt_fecha(se_registro) if se_registro else "—",
+        })
+
+    return {
+        "codigo_subasta": subasta.get("code", "—") or "—",
+        "total_oferentes": len(oferentes),
+        "oferentes": oferentes,
+    }
+
+
 def generar(fmi: str) -> tuple[bytes, str, list[str]]:
     """`fmi` es el identificador de búsqueda: UUID/código de subasta, FMI
     de inmueble individual, o código de unidad inmobiliaria."""
