@@ -209,12 +209,18 @@ def _scrape_fechas(grupo_id, nombre_grupo: str, inm_id=None) -> dict:
         if chrome_bin:
             options.binary_location = chrome_bin
 
-        try:
-            driver_path = ChromeDriverManager(cache_valid_range=30).install()
-        except TypeError:
-            driver_path = ChromeDriverManager().install()
-        except Exception:
-            driver_path = os.environ.get("CHROMEDRIVER_PATH", "chromedriver")
+        # Si la imagen Docker ya trae un chromedriver fijado en el build
+        # (ver Dockerfile), se usa directo -- evita que CADA generacion
+        # tenga que consultar internet para verificar la version del
+        # driver, que es lo que hacia esto mas lento de lo necesario.
+        driver_path = os.environ.get("CHROMEDRIVER_PATH")
+        if not driver_path or not os.path.isfile(driver_path):
+            try:
+                driver_path = ChromeDriverManager(cache_valid_range=30).install()
+            except TypeError:
+                driver_path = ChromeDriverManager().install()
+            except Exception:
+                driver_path = os.environ.get("CHROMEDRIVER_PATH", "chromedriver")
         driver = webdriver.Chrome(service=Service(driver_path), options=options)
         try:
             driver.set_page_load_timeout(15)

@@ -136,5 +136,24 @@ async function buscar() {
 document.getElementById('buscador').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); buscar(); }
 });
+
+// Feedback inmediato al hacer clic en generar/descargar: el acta de subasta
+// en particular hace una consulta a la base de datos + scraping en vivo del
+// sitio publico antes de responder, asi que puede tardar varios segundos.
+// Sin esto, el clic no cambiaba nada visible hasta que el archivo terminaba
+// de generarse, y eso se sentia como si no hubiera pasado nada. Se marca la
+// fila de inmediato y se deja la navegacion seguir su curso normal (la
+// descarga llega igual cuando el servidor responda).
+document.getElementById('resultados').addEventListener('click', (e) => {
+  const fila = e.target.closest('a.result-row');
+  if (!fila) return;
+  const badge = fila.querySelector('.badge');
+  if (badge) {
+    badge.textContent = 'Generando…';
+    badge.classList.add('generando');
+  }
+  fila.classList.add('fila-en-proceso');
+  fila.style.pointerEvents = 'none';
+});
 </script>
 {% endblock %}
