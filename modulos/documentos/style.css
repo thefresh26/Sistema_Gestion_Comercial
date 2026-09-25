@@ -281,24 +281,55 @@ select:focus, input[type=text]:focus {
 [data-theme="dark"] .badge.completo { color: #5fe3ac; }
 [data-theme="dark"] .badge.con_observaciones { color: #f28b7d; }
 
-/* Feedback inmediato al hacer clic en generar/descargar -- mientras el
-   servidor arma el documento (puede tardar varios segundos en el Acta de
-   Subasta), la fila se atenua y el badge "respira" para dejar claro que el
-   clic si se registro y que hay que esperar la descarga. */
-.badge.generando {
-  background: rgba(26,168,221,.12);
-  color: var(--azul, #1aa8dd);
-  border: 1px solid rgba(26,168,221,.32);
-  animation: pulso-badge-generando 1.1s ease-in-out infinite;
+/* Boton "Generar y descargar" / "Descargar" de cada fila de resultado.
+   Antes esto era un <a> que navegaba directo a la URL de descarga y no
+   avisaba nada mientras el servidor trabajaba (el Acta de Subasta en
+   particular puede tardar varios segundos, por la consulta a la base de
+   datos + el scraping en vivo del sitio publico). Ahora es un boton real
+   con 4 estados: normal, generando (mientras espera la respuesta), listo
+   (ya descargo) y error (si algo fallo, invita a reintentar). */
+.btn-generar {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1.5px solid rgba(26,168,221,.35);
+  background: rgba(26,168,221,.1);
+  color: var(--navy3);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: filter .2s ease, transform .2s ease, background-color .2s ease, border-color .2s ease;
 }
-@keyframes pulso-badge-generando {
+[data-theme="dark"] .btn-generar { color: #7dd3fc; }
+.btn-generar:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
+.btn-generar:disabled { cursor: progress; }
+
+.btn-generar.generando {
+  animation: pulso-btn-generando 1.1s ease-in-out infinite;
+}
+@keyframes pulso-btn-generando {
   0%, 100% { opacity: 1; }
   50% { opacity: .55; }
 }
+
+.btn-generar.listo {
+  background: rgba(26,184,122,.12);
+  color: #138f5e;
+  border-color: rgba(26,184,122,.3);
+}
+[data-theme="dark"] .btn-generar.listo { color: #5fe3ac; }
+
+.btn-generar.error {
+  background: rgba(224,53,53,.1);
+  color: var(--sello);
+  border-color: rgba(224,53,53,.28);
+}
+[data-theme="dark"] .btn-generar.error { color: #f28b7d; }
+
 .result-row.fila-en-proceso {
-  opacity: .7;
-  cursor: progress;
-  transform: none !important;
+  opacity: .85;
 }
 
 .btn-sm {

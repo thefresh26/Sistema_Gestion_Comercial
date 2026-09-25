@@ -57,19 +57,18 @@ function urlGenerarDescargar(tipo, fmi) {
 
 function filaResultado(c, tipo) {
   const yaGenerado = !!c.documento_id;
-  const badge = yaGenerado
-    ? `<span class="badge completo">descargar</span>`
-    : `<span class="badge ${c.estado || 'pendiente'}">generar y descargar</span>`;
-  return `<a class="result-row" href="${urlGenerarDescargar(tipo, c.fmi)}">
+  const etiqueta = yaGenerado ? 'Descargar' : 'Generar y descargar';
+  return `<div class="result-row">
     <div><div class="fmi">${c.fmi}</div><div class="nombre">${c.arrendatario_nombre || 'Sin arrendatario'} · ${c.direccion || ''}</div></div>
-    ${badge}
-  </a>`;
+    <button type="button" class="btn-generar" data-url="${urlGenerarDescargar(tipo, c.fmi)}">${etiqueta}</button>
+  </div>`;
 }
 
 function filaCasoNuevo(termino, tipo) {
-  return `<a class="result-row" href="${urlGenerarDescargar(tipo, termino)}">
+  return `<div class="result-row">
     <div><div class="fmi">${termino}</div><div class="nombre">Clic para generar y descargar</div></div>
-  </a>`;
+    <button type="button" class="btn-generar" data-url="${urlGenerarDescargar(tipo, termino)}">Generar y descargar</button>
+  </div>`;
 }
 
 function barraDescargaTodos(ids) {
@@ -101,10 +100,10 @@ async function buscar() {
     const casos = await buscarUnTermino(textoOriginal, tipo);
     if (casos.length === 0) {
       cont.innerHTML = filaCasoNuevo(textoOriginal, tipo);
-      window.location.href = urlGenerarDescargar(tipo, textoOriginal);
+      cont.querySelector('.btn-generar').click();
     } else if (casos.length === 1) {
       cont.innerHTML = filaResultado(casos[0], tipo);
-      window.location.href = urlGenerarDescargar(tipo, casos[0].fmi);
+      cont.querySelector('.btn-generar').click();
     } else {
       casos.forEach(c => { if (c.documento_id) idsDescargables.push(c.documento_id); });
       cont.innerHTML = barraDescargaTodos(idsDescargables) + casos.map(c => filaResultado(c, tipo)).join('');
@@ -137,23 +136,62 @@ document.getElementById('buscador').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); buscar(); }
 });
 
-// Feedback inmediato al hacer clic en generar/descargar: el acta de subasta
-// en particular hace una consulta a la base de datos + scraping en vivo del
-// sitio publico antes de responder, asi que puede tardar varios segundos.
-// Sin esto, el clic no cambiaba nada visible hasta que el archivo terminaba
-// de generarse, y eso se sentia como si no hubiera pasado nada. Se marca la
-// fila de inmediato y se deja la navegacion seguir su curso normal (la
-// descarga llega igual cuando el servidor responda).
-document.getElementById('resultados').addEventListener('click', (e) => {
-  const fila = e.target.closest('a.result-row');
-  if (!fila) return;
-  const badge = fila.querySelector('.badge');
-  if (badge) {
-    badge.textContent = 'Generando…';
-    badge.classList.add('generando');
-  }
+// El acta de subasta en particular hace una consulta a la base de datos +
+// scraping en vivo del sitio publico antes de responder, asi que puede
+// tardar varios segundos. Antes esto era un <a href> que navegaba directo a
+// la URL de descarga: el navegador mostraba el dialogo de guardar pero la
+// pagina nunca "terminaba" de cargar del lado de JS, asi que el boton se
+// quedaba pegado en "Generando..." para siempre (incluso despues de darle
+// Guardar o cerrar el dialogo). Por eso ahora se usa fetch(): asi se sabe
+// con certeza cuando la respuesta llego (o fallo) y el boton SI vuelve a su
+// estado normal.
+function extraerNombreArchivo(response, fallback) {
+  const disp = response.headers.get('Content-Disposition') || '';
+  const m = disp.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  return m ? decodeURIComponent(m[1]) : fallback;
+}
+
+async function generarYDescargar(boton) {
+  const url = boton.dataset.url;
+  const fila = boton.closest('.result-row');
+
+  boton.disabled = true;
+  boton.textContent = 'Generando…';
+  boton.classList.add('generando');
   fila.classList.add('fila-en-proceso');
-  fila.style.pointerEvents = 'none';
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const blob = await res.blob();
+    const nombreArchivo = extraerNombreArchivo(res, 'documento');
+    const blobUrl = URL.createObjectURL(blob);
+    const enlaceTemporal = document.createElement('a');
+    enlaceTemporal.href = blobUrl;
+    enlaceTemporal.download = nombreArchivo;
+    document.body.appendChild(enlaceTemporal);
+    enlaceTemporal.click();
+    enlaceTemporal.remove();
+    URL.revokeObjectURL(blobUrl);
+
+    boton.textContent = 'Descargar';
+    boton.classList.remove('generando');
+    boton.classList.add('listo');
+  } catch (err) {
+    boton.textContent = 'Error, reintentar';
+    boton.classList.remove('generando');
+    boton.classList.add('error');
+  } finally {
+    boton.disabled = false;
+    fila.classList.remove('fila-en-proceso');
+  }
+}
+
+document.getElementById('resultados').addEventListener('click', (e) => {
+  const boton = e.target.closest('.btn-generar');
+  if (!boton) return;
+  generarYDescargar(boton);
 });
 </script>
 {% endblock %}
