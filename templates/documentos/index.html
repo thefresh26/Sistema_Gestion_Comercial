@@ -178,7 +178,17 @@ async function generarYDescargar(boton) {
 
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // El backend responde JSON con el motivo del fallo (dato no
+      // encontrado, error de la base de negocio, etc.) en vez de un
+      // 500 mudo; se muestra ese mensaje en vez de uno generico.
+      let mensaje = `No se pudo generar el documento (HTTP ${res.status}).`;
+      try {
+        const datos = await res.json();
+        if (datos && datos.error) mensaje = datos.error;
+      } catch (_e) { /* la respuesta no era JSON, se usa el mensaje generico */ }
+      throw new Error(mensaje);
+    }
 
     const blob = await res.blob();
     const nombreArchivo = extraerNombreArchivo(res, 'documento');
@@ -196,6 +206,7 @@ async function generarYDescargar(boton) {
     boton.classList.add('listo');
   } catch (err) {
     boton.textContent = 'Error, reintentar';
+    boton.title = err.message || 'Ocurrio un error al generar el documento.';
     boton.classList.remove('generando');
     boton.classList.add('error');
   } finally {

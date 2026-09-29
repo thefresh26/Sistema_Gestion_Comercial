@@ -1020,6 +1020,16 @@ def documentos_generar(tipo: str, fmi: str):
         # subasta asociada) -- se muestra como mensaje en la ficha, no como
         # error 500 crudo.
         return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi, error=str(e)))
+    except Exception as e:
+        # Cualquier otro fallo (consulta a la base de negocio, plantilla,
+        # etc.) se registra completo en los logs para poder diagnosticarlo,
+        # y se muestra un mensaje entendible en la ficha en vez de un 500
+        # en blanco que no dice nada.
+        app.logger.exception("Error generando documento %s para %s", tipo, fmi)
+        return redirect(url_for(
+            "documentos_ver_caso", tipo=tipo, fmi=fmi,
+            error=f"No se pudo generar el documento: {e}",
+        ))
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,
@@ -1057,10 +1067,18 @@ def documentos_generar_descargar(tipo: str, fmi: str):
             download_name=existente["nombre_archivo"],
         )
 
+    # Ojo: esta ruta la llama SIEMPRE el frontend via fetch() (nunca
+    # navegacion directa), asi que ante un fallo se responde JSON + codigo
+    # de error (para que fetch vea res.ok = false) en vez de un redirect:
+    # un redirect aqui terminaria "descargando" la pagina HTML de la ficha
+    # como si fuera el documento, sin avisar a nadie que algo fallo.
     try:
         contenido, nombre_archivo, _pendientes = modulo.generar(fmi)
     except ValueError as e:
-        return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi, error=str(e)))
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        app.logger.exception("Error generando documento %s para %s", tipo, fmi)
+        return jsonify({"error": f"No se pudo generar el documento: {e}"}), 500
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,
