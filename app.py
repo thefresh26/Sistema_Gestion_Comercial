@@ -1080,6 +1080,16 @@ def documentos_generar_descargar(tipo: str, fmi: str):
         app.logger.exception("Error generando documento %s para %s", tipo, fmi)
         return jsonify({"error": f"No se pudo generar el documento: {e}"}), 500
 
+    # La columna documentos.fmi tiene una llave foranea hacia casos(fmi):
+    # si nadie paso antes por la ficha del caso (documentos_ver_caso, que
+    # si crea esa fila), este INSERT fallaba con un ForeignKeyViolation --
+    # un 500 en blanco, porque este flujo de "generar y descargar de una
+    # vez desde la busqueda" es justamente el que se salta la ficha. Se
+    # crea la fila de "casos" aqui mismo si todavia no existe, igual que
+    # hace documentos_ver_caso.
+    if not db_documentos.obtener_caso(fmi):
+        db_documentos.upsert_caso(fmi, {"estado": "pendiente", "pendientes": []})
+
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,
         _mime_type_por_nombre(nombre_archivo),
