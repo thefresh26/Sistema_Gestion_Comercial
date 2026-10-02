@@ -25,7 +25,7 @@ a dos fuentes:
 
 El resultado final (cantidad y valor por año Y MES, por sistema) se guarda
 en la tabla dashboard_ventas_anual de Supabase. La ruta
-/api/dashboard/resumen de app.py SOLO lee esa tabla — nunca consulta la
+/api/dashboard/resumen (backend/rutas/dashboard.py) SOLO lee esa tabla — nunca consulta la
 base "intranet" directamente, así que un problema de red hacia Azure
 nunca puede tumbar el portal.
 
@@ -54,11 +54,14 @@ from collections import defaultdict
 
 import requests
 
+# Driver de Postgres v3 (`psycopg`), el mismo que usa el resto del
+# sistema -- ver requirements.txt. Antes esto importaba `psycopg2`, que ya
+# no se instala desde que Render actualizo a Python 3.14 y se cambio a
+# psycopg v3: la GitHub Action fallaba aqui todos los dias.
 try:
-    import psycopg2
-    import psycopg2.extras
+    import psycopg
 except ImportError:
-    psycopg2 = None
+    psycopg = None
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -82,14 +85,14 @@ def log(msg):
 # ── SAE: se calcula en vivo contra la base "intranet" ──────────────────
 
 def calcular_sae():
-    if not psycopg2:
-        log("psycopg2 no está instalado — no se puede consultar la base intranet.")
+    if not psycopg:
+        log("psycopg no está instalado — no se puede consultar la base intranet.")
         return {}
     if not INTRANET_DB_HOST or not INTRANET_DB_PASSWORD:
         log("Faltan variables INTRANET_DB_* — se omite el cálculo de SAE.")
         return {}
 
-    conn = psycopg2.connect(
+    conn = psycopg.connect(
         host=INTRANET_DB_HOST,
         port=INTRANET_DB_PORT,
         dbname=INTRANET_DB_NAME,
@@ -192,14 +195,14 @@ def calcular_sae():
 #     revision manual y no se pueden detectar solo con esta consulta.
 
 def calcular_subastas():
-    if not psycopg2:
-        log("psycopg2 no está instalado — no se puede consultar la base intranet.")
+    if not psycopg:
+        log("psycopg no está instalado — no se puede consultar la base intranet.")
         return {}
     if not INTRANET_DB_HOST or not INTRANET_DB_PASSWORD:
         log("Faltan variables INTRANET_DB_* — se omite el cálculo de SUBASTAS.")
         return {}
 
-    conn = psycopg2.connect(
+    conn = psycopg.connect(
         host=INTRANET_DB_HOST,
         port=INTRANET_DB_PORT,
         dbname=INTRANET_DB_NAME,

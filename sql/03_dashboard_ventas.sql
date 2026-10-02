@@ -1,6 +1,6 @@
 -- Tabla donde se cachean los totales de ventas del dashboard comercial.
 -- La llena el Cron Job (scripts/actualizar_dashboard.py); la lee la ruta
--- /api/dashboard/resumen de app.py. El tab del dashboard NUNCA consulta
+-- /api/dashboard/resumen (backend/rutas/dashboard.py). El tab del dashboard NUNCA consulta
 -- directamente la base "intranet" de Azure — solo lee esta tabla, que ya
 -- viene calculada.
 

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Documentos{% endblock %} · Activos por Colombia</title>
+  <script>(function(){try{var t=localStorage.getItem('apc-theme');document.documentElement.setAttribute('data-theme', t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/documentos/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="{{ url_for('documentos.index') }}">Activos por Colombia <span>· Documentos</span></a>
+  </div>
+  {% block contenido %}{% endblock %}
+</body>
+</html>

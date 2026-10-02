@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block titulo %}{{ caso.fmi }}{% endblock %}
+{% block contenido %}
+<div class="container">
+  <p><a class="link" href="{{ url_for('documentos.index') }}">&larr; Buscar otro caso</a></p>
+  <h1 style="margin-bottom:4px">{{ caso.fmi }}</h1>
+  <p style="color:var(--text-dim); margin-top:0">
+    {{ info.etiqueta }} &middot;
+    <span class="badge {{ caso.estado }}">{{ caso.estado.replace('_',' ') }}</span>
+  </p>
+
+  {% if error %}
+  <div class="card" style="border-left:4px solid #c0392b; background:#fdecea">
+    <h2 style="margin-top:0; color:#c0392b">No se pudo generar el documento</h2>
+    <p style="margin-bottom:0">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  {% if caso.pendientes %}
+  <div class="card">
+    <h2>Pendientes de este documento</h2>
+    <ul class="pendientes">
+      {% for p in caso.pendientes %}<li>{{ p }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if tipos_documento_fuente %}
+  <div class="card">
+    <h2>Documentos de origen</h2>
+    <div class="doc-list">
+      {% for d in documentos_fuente %}
+      <div class="doc-row">
+        <div>{{ tipos_documento_fuente.get(d.tipo, d.tipo) }} — {{ d.nombre_archivo }}</div>
+        <a class="link" href="{{ url_for('documentos.descargar', doc_id=d.id) }}">Descargar</a>
+      </div>
+      {% else %}
+      <p style="color:var(--text-dim); font-size:14px">Todavía no se ha subido ningún documento.</p>
+      {% endfor %}
+    </div>
+    <form class="upload-form" method="post" action="{{ url_for('documentos.subir_documento', tipo=tipo, fmi=caso.fmi) }}" enctype="multipart/form-data">
+      <select name="tipo_fuente">
+        {% for clave, etiqueta in tipos_documento_fuente.items() %}
+        <option value="{{ clave }}">{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+      <input type="file" name="archivo" required>
+      <button class="btn btn-secondary" type="submit">Subir documento</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Documento generado</h2>
+    {% if documentos_generados %}
+      {% set a = documentos_generados[0] %}
+      <div class="doc-row">
+        <div>{{ a.nombre_archivo }} — {{ a.subido_en.strftime('%d/%m/%Y %H:%M') }}</div>
+        <a class="link" href="{{ url_for('documentos.descargar', doc_id=a.id) }}">Descargar</a>
+      </div>
+    {% else %}
+      <p style="color:var(--text-dim); font-size:14px">Todavía no se ha generado este documento para el caso.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('documentos.generar', tipo=tipo, fmi=caso.fmi) }}" style="margin-top:16px">
+      <button class="btn" type="submit">Generar ahora</button>
+    </form>
+  </div>
+
+  {% if tipo in ('acta_subasta', 'informe_subasta') %}
+  <div class="card" id="card-oferentes">
+    <h2>Oferentes de la subasta</h2>
+    <p style="color:var(--text-dim); font-size:13px; margin-top:-8px">
+      Todos los inscritos en la subasta, tengan o no puja registrada -- esta
+      lista es mas completa que la del documento generado, que solo incluye
+      a quien SI tiene un monto de puja.
+    </p>
+    <div id="oferentes-contenido">
+      <p style="color:var(--text-dim); font-size:14px">Cargando oferentes…</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if tipo in ('acta_subasta', 'informe_subasta') %}
+<script>
+async function cargarOferentes() {
+  const cont = document.getElementById('oferentes-contenido');
+  try {
+    const res = await fetch('{{ url_for("documentos.oferentes", tipo=tipo, fmi=caso.fmi) }}');
+    const datos = await res.json();
+    if (!res.ok) {
+      cont.innerHTML = `<p style="color:#c0392b; font-size:14px">${datos.error || 'No se pudo consultar la subasta.'}</p>`;
+      return;
+    }
+    if (!datos.oferentes.length) {
+      cont.innerHTML = `<p style="color:var(--text-dim); font-size:14px">Esta subasta (código ${datos.codigo_subasta}) no tiene ningún oferente inscrito.</p>`;
+      return;
+    }
+    const filas = datos.oferentes.map(o => {
+      const etiquetaTipo = o.es_juridica ? 'Persona jurídica' : 'Persona natural';
+      const etiquetaId = o.es_juridica ? 'NIT' : (o.tipo_identificacion && o.tipo_identificacion !== '—' ? o.tipo_identificacion : 'C.C.');
+      return `
+      <div class="doc-row" style="${o.gano ? 'border-left:3px solid #1ab87a; padding-left:10px' : ''}">
+        <div>
+          <b>${o.nombre}</b>
+          <span style="font-size:11px; color:var(--text-dim); border:1px solid var(--border); border-radius:100px; padding:1px 8px; margin-left:6px">${etiquetaTipo}</span>
+          ${o.gano ? ' &middot; <span style="color:#1ab87a; font-weight:700">GANADOR</span>' : ''}
+          <div style="font-size:12.5px; color:var(--text-dim)">
+            ${etiquetaId}: ${o.cedula} &middot; ${o.es_juridica ? 'Ciudad' : 'Lugar de expedición'}: ${o.ciudad_o_lugar_exp} &middot; Inscrito: ${o.se_registro}
+            ${o.status_puja ? ` &middot; Estado de la puja: ${o.status_puja}` : ' &middot; Sin puja registrada'}
+          </div>
+        </div>
+        <div style="font-weight:700">${o.monto ? '$ ' + o.monto : '—'}</div>
+      </div>
+    `;
+    }).join('');
+    cont.innerHTML = `<p style="color:var(--text-dim); font-size:13px">Código de subasta: ${datos.codigo_subasta} &middot; ${datos.total_oferentes} oferente(s)</p>${filas}`;
+  } catch (err) {
+    cont.innerHTML = `<p style="color:#c0392b; font-size:14px">No se pudo consultar la subasta: ${err}</p>`;
+  }
+}
+cargarOferentes();
+</script>
+{% endif %}
+{% endblock %}

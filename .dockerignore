@@ -1,0 +1,12 @@
+# Lo que no tiene por qué entrar en la imagen de Docker.
+.git
+.github
+__pycache__
+*.pyc
+venv
+.venv
+.env
+docs
+sql
+desktop.ini
+Thumbs.db
