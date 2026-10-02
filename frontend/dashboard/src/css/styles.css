@@ -295,6 +295,34 @@ main{max-width:1280px;margin:0 auto;padding:28px;}
   margin-bottom:20px;
 }
 
+/* ── Celular: header más compacto, filtros apilados y objetivos táctiles
+   de 44px en el selector y los botones de vista (antes rondaban 27px). */
+@media (max-width: 640px){
+  .header-inner{padding:24px 18px 26px; align-items:flex-start;}
+  .brand-title{font-size:22px;}
+  .brand-sub{font-size:12px;}
+
+  main{padding:16px;}
+
+  .insights-banner{grid-template-columns:1fr;}
+
+  .stat-grid{grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px;}
+
+  .filtros{flex-direction:column; align-items:stretch; gap:10px; padding:14px;}
+  .filtro-grupo{justify-content:space-between;}
+  .filtro-grupo select{
+    min-height:44px; padding:10px 12px; font-size:14px; flex:1;
+  }
+
+  .vista-toggle{width:100%;}
+  .vista-btn{min-height:44px; padding:10px 14px; flex:1;}
+
+  .chart-card{padding:18px 16px;}
+  .chart-canvas-wrap{height:220px;}
+  .charts-grid .span-2 .chart-canvas-wrap{height:240px;}
+  .chart-canvas-wrap-donut{height:200px;}
+}
+
 /* Respeta "reducir movimiento" del sistema operativo: apaga animaciones y
    transiciones en todo el módulo sin tener que tocar cada regla. */
 @media (prefers-reduced-motion: reduce){

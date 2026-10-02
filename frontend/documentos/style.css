@@ -515,6 +515,45 @@ input[type=file] {
   color: var(--muted);
 }
 
+/* ── RESPONSIVE (celular) ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  .topbar { padding: 14px 18px; }
+  .topbar .brand { font-size: 13px; }
+
+  .container { padding: 28px 16px 40px; }
+
+  .hero h1 { font-size: 26px; }
+  .hero p { font-size: 14px; margin-bottom: 24px; }
+
+  .search-box { flex-direction: column; padding: 10px; gap: 8px; }
+  .search-box input { padding: 12px 8px; }
+  .search-box .btn { width: 100%; justify-content: center; min-height: 46px; }
+
+  select, input[type=text] { min-height: 46px; font-size: 16px; }
+
+  .result-row { padding: 14px 16px; gap: 10px; }
+  .result-row .fmi { font-size: 13px; }
+  .result-row > div:first-child { min-width: 0; overflow: hidden; }
+  .result-row .nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { white-space: nowrap; flex-shrink: 0; }
+
+  .card { padding: 20px 18px; }
+
+  .download-bar { flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+  .download-bar .btn-sm { width: 100%; justify-content: center; min-height: 44px; }
+
+  .field-grid { grid-template-columns: 1fr; gap: 14px; }
+
+  .doc-row { flex-wrap: wrap; gap: 8px; }
+  .doc-row > div:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+  .upload-form select, .upload-form input[type=text] { width: 100%; }
+  .upload-form input[type=file] { width: 100%; }
+  .upload-form .btn, .upload-form .btn-secondary { width: 100%; min-height: 46px; }
+
+  .btn, .btn-secondary { min-height: 46px; }
+}
+
 /* ── RESPETA "REDUCIR MOVIMIENTO" ─────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

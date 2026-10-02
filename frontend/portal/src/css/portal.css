@@ -349,8 +349,30 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
 .btn-externo:active{transform:translateY(0) scale(.96); transition-duration:.1s;}
 
 @media (max-width: 700px){
-  .tab-btn{padding:9px 11px; font-size:12.5px;}
-  .session-info{display:none;}
+  .topbar-inner{padding:12px 14px 0;}
+  .topbar-inner:last-child{padding-top:0;}
+  .brand{font-size:13.5px;}
+  .brand img{height:22px;}
+
+  /* Antes ocultaba TODO .session-info -- incluyendo el botón de tema y
+     el de cerrar sesión, que quedaban inalcanzables en el celular. Ahora
+     solo se ocultan los textos de usuario/rol; los botones se quedan. */
+  .session-info{gap:8px;}
+  .session-info > span{display:none;}
+
+  /* Las pestañas se deslizan horizontalmente en vez de amontonarse en
+     varias filas (7 pestañas no caben en una pantalla de celular). */
+  .tabs{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:2px;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab-btn{padding:11px 14px; font-size:12.5px; white-space:nowrap; flex-shrink:0;}
+
+  .logout-link{min-height:44px;}
+
+  #panel-inicio, .panel-externo{padding:24px 16px 32px;}
+  #panel-inicio h2, .panel-externo h2{font-size:20px;}
+  .modulo-cards{grid-template-columns:1fr; gap:12px; margin-top:20px;}
+
+  .login-card{padding:32px 22px; max-width:100%;}
 }
 
 /* Respeta la preferencia de "reducir movimiento" del sistema operativo:
@@ -381,6 +403,13 @@ h1,h2,h3{font-family:var(--sans); margin:0;}
 .theme-toggle .icon-luna{display:none;}
 [data-theme="dark"] .theme-toggle .icon-sol{display:none;}
 [data-theme="dark"] .theme-toggle .icon-luna{display:block;}
+
+/* En celular el botón de tema pasa a 44×44 (objetivo táctil mínimo);
+   esta regla va DESPUÉS de la base .theme-toggle de arriba a propósito,
+   para ganarle en cascada sin necesitar !important. */
+@media (max-width: 700px){
+  .theme-toggle{width:44px; height:44px;}
+}
 
 /* ── FIX: el topbar es una franja fija oscura en los dos temas (igual
    que el hero/header de los demás módulos), así que su texto usa
