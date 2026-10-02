@@ -26,6 +26,7 @@ Variables de entorno necesarias (Render → Settings → Environment):
 
 import os
 import json
+import re
 import hmac
 import requests
 from functools import wraps
@@ -895,8 +896,35 @@ def documentos_style():
 @app.route("/api/documentos/buscar")
 @requires_modulo("documentos")
 def documentos_buscar():
-    termino = request.args.get("q", "")
+    termino = request.args.get("q", "").strip()
     tipo = request.args.get("tipo", "")
+
+    # El Certificado DD es distinto a los demas tipos: un mismo FMI/codigo
+    # de subasta puede tener VARIAS personas asociadas (cada oferente
+    # necesita su propio certificado), mientras que la tabla local "casos"
+    # esta pensada para 1 FMI = 1 caso -- por eso una busqueda por FMI solo
+    # devolvia 1 fila aunque hubiera mas gente inscrita en esa subasta. Para
+    # este tipo se resuelve en vivo contra la base de negocio en vez de
+    # "casos", y se devuelve una fila por cada persona encontrada.
+    if tipo == "certificado_dd" and termino and not termino.isdigit():
+        from core.tipos.certificado_dd import buscar_participante
+        try:
+            participantes = buscar_participante(termino)
+        except Exception:
+            participantes = []
+        resultados = []
+        for p in participantes:
+            identificador_doc = re.sub(r"\D", "", p["cedula"]) or p["cedula"]
+            existente = db_documentos.obtener_documento_generado(identificador_doc, "certificado_dd")
+            resultados.append({
+                "fmi": identificador_doc,
+                "arrendatario_nombre": p["nombre"],
+                "direccion": f"C.C./NIT: {p['cedula']}",
+                "documento_id": existente["id"] if existente else None,
+                "estado": None,
+            })
+        return jsonify(resultados)
+
     resultados = db_documentos.buscar_casos(termino, tipo_salida=tipo or None)
     return jsonify(resultados)
 
@@ -935,6 +963,30 @@ def documentos_ver_caso(tipo: str, fmi: str):
     )
 
 
+@app.route("/documentos/caso/<tipo>/<fmi>/oferentes")
+@requires_modulo("documentos")
+def documentos_oferentes(tipo: str, fmi: str):
+    """Lista todos los oferentes inscritos en la subasta de este FMI,
+    incluyendo al ganador -- a diferencia del Acta de Subasta, que solo
+    incluye a quien tiene una puja con monto registrado. Sirve para
+    diagnosticar casos donde el Acta sale "sin ganador": aqui se ve si
+    el problema es que nadie quedo marcado como ganador en la base de
+    datos, o si el ganador esta inscrito pero sin puja registrada."""
+    if not _tipo_documento_o_404(tipo):
+        return jsonify({"error": "Ese tipo de documento todavía no está disponible."}), 404
+    if tipo not in ("acta_subasta", "informe_subasta"):
+        return jsonify({"error": "Este tipo de documento no tiene oferentes de subasta asociados."}), 400
+
+    from core.tipos.acta_subasta import obtener_oferentes
+    try:
+        datos = obtener_oferentes(fmi)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+    registrar_log("documentos", session.get("email"), "ver_oferentes", f"{tipo}:{fmi}", obtener_ip_cliente())
+    return jsonify(datos)
+
+
 @app.route("/documentos/caso/<tipo>/<fmi>/documentos", methods=["POST"])
 @requires_modulo("documentos")
 def documentos_subir_documento(tipo: str, fmi: str):
@@ -968,6 +1020,16 @@ def documentos_generar(tipo: str, fmi: str):
         # subasta asociada) -- se muestra como mensaje en la ficha, no como
         # error 500 crudo.
         return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi, error=str(e)))
+    except Exception as e:
+        # Cualquier otro fallo (consulta a la base de negocio, plantilla,
+        # etc.) se registra completo en los logs para poder diagnosticarlo,
+        # y se muestra un mensaje entendible en la ficha en vez de un 500
+        # en blanco que no dice nada.
+        app.logger.exception("Error generando documento %s para %s", tipo, fmi)
+        return redirect(url_for(
+            "documentos_ver_caso", tipo=tipo, fmi=fmi,
+            error=f"No se pudo generar el documento: {e}",
+        ))
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,
@@ -1005,10 +1067,28 @@ def documentos_generar_descargar(tipo: str, fmi: str):
             download_name=existente["nombre_archivo"],
         )
 
+    # Ojo: esta ruta la llama SIEMPRE el frontend via fetch() (nunca
+    # navegacion directa), asi que ante un fallo se responde JSON + codigo
+    # de error (para que fetch vea res.ok = false) en vez de un redirect:
+    # un redirect aqui terminaria "descargando" la pagina HTML de la ficha
+    # como si fuera el documento, sin avisar a nadie que algo fallo.
     try:
         contenido, nombre_archivo, _pendientes = modulo.generar(fmi)
     except ValueError as e:
-        return redirect(url_for("documentos_ver_caso", tipo=tipo, fmi=fmi, error=str(e)))
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        app.logger.exception("Error generando documento %s para %s", tipo, fmi)
+        return jsonify({"error": f"No se pudo generar el documento: {e}"}), 500
+
+    # La columna documentos.fmi tiene una llave foranea hacia casos(fmi):
+    # si nadie paso antes por la ficha del caso (documentos_ver_caso, que
+    # si crea esa fila), este INSERT fallaba con un ForeignKeyViolation --
+    # un 500 en blanco, porque este flujo de "generar y descargar de una
+    # vez desde la busqueda" es justamente el que se salta la ficha. Se
+    # crea la fila de "casos" aqui mismo si todavia no existe, igual que
+    # hace documentos_ver_caso.
+    if not db_documentos.obtener_caso(fmi):
+        db_documentos.upsert_caso(fmi, {"estado": "pendiente", "pendientes": []})
 
     doc_id = db_documentos.guardar_documento(
         fmi, "documento_generado", nombre_archivo,

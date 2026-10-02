@@ -209,12 +209,18 @@ def _scrape_fechas(grupo_id, nombre_grupo: str, inm_id=None) -> dict:
         if chrome_bin:
             options.binary_location = chrome_bin
 
-        try:
-            driver_path = ChromeDriverManager(cache_valid_range=30).install()
-        except TypeError:
-            driver_path = ChromeDriverManager().install()
-        except Exception:
-            driver_path = os.environ.get("CHROMEDRIVER_PATH", "chromedriver")
+        # Si la imagen Docker ya trae un chromedriver fijado en el build
+        # (ver Dockerfile), se usa directo -- evita que CADA generacion
+        # tenga que consultar internet para verificar la version del
+        # driver, que es lo que hacia esto mas lento de lo necesario.
+        driver_path = os.environ.get("CHROMEDRIVER_PATH")
+        if not driver_path or not os.path.isfile(driver_path):
+            try:
+                driver_path = ChromeDriverManager(cache_valid_range=30).install()
+            except TypeError:
+                driver_path = ChromeDriverManager().install()
+            except Exception:
+                driver_path = os.environ.get("CHROMEDRIVER_PATH", "chromedriver")
         driver = webdriver.Chrome(service=Service(driver_path), options=options)
         try:
             driver.set_page_load_timeout(15)
@@ -636,6 +642,72 @@ def _generar_docx_bytes(datos: dict) -> bytes:
         for name, contenido in archivos.items():
             zout.writestr(name, contenido)
     return salida.getvalue()
+
+
+def obtener_oferentes(identificador: str) -> dict:
+    """Lista TODOS los oferentes inscritos en la subasta asociada a este
+    FMI/codigo/unidad, incluyendo su ultima puja y si quedaron marcados
+    como ganadores (status 'WINNING').
+
+    A diferencia de lo que se imprime en el Acta -- que solo incluye a
+    quien SI tiene una puja registrada con monto, y elige un ganador solo
+    si hay alguien con status 'WINNING' o, en su defecto, la puja mas alta
+    -- aqui se listan todos los inscritos aunque no hayan llegado a pujar.
+    Esto es justo para diagnosticar casos donde el Acta sale sin ganador:
+    o nadie tiene status 'WINNING' y tampoco hay pujas con monto, o el
+    ganador real esta inscrito pero sin puja registrada (por lo que el
+    Acta no puede saber que gano)."""
+    with db.get_conn_negocio_tuplas() as conn:
+        auction_uuid = _resolver_identificador(conn, identificador)
+        subasta = _obtener_subasta(conn, auction_uuid)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    ct.nombre_principal, ct.identificacion_numero, ct.identificacion_tipo,
+                    ct.lugar_expedicion_doc, ct.ciudad, p.client_id,
+                    (SELECT b.amount FROM polybid.auction_bids b
+                     WHERE b.auction_id = p.auction_id AND b.client_id = p.client_id
+                     ORDER BY b.created_at DESC LIMIT 1) AS ultima_puja,
+                    (SELECT b.status FROM polybid.auction_bids b
+                     WHERE b.auction_id = p.auction_id AND b.client_id = p.client_id
+                     ORDER BY b.created_at DESC LIMIT 1) AS status_puja,
+                    p.created_at
+                FROM polybid.auction_participants p
+                LEFT JOIN polibid_credentials pc ON pc.client_id = p.client_id
+                LEFT JOIN contact_terceros ct ON ct.id = pc.contact_tercero_id
+                WHERE p.auction_id = %s::uuid
+                ORDER BY ultima_puja DESC NULLS LAST, p.created_at
+                """,
+                (auction_uuid,),
+            )
+            filas = cur.fetchall()
+
+    # Igual que en el Acta (_generar_docx_bytes / ciudad_cedula): una
+    # persona juridica se identifica por identificacion_tipo == 'NIT', y
+    # para esas se muestra la ciudad en vez del lugar de expedicion de la
+    # cedula (que no aplica a una empresa).
+    oferentes = []
+    for nombre, cedula, tipo_id, lugar_exp, ciudad, client_id, monto, status, se_registro in filas:
+        es_juridica = (tipo_id or "").upper() == "NIT"
+        oferentes.append({
+            "nombre": (nombre or "Sin nombre registrado").upper(),
+            "cedula": str(cedula or "—"),
+            "tipo_identificacion": tipo_id or ("NIT" if es_juridica else "—"),
+            "es_juridica": es_juridica,
+            "ciudad_o_lugar_exp": (ciudad if es_juridica else lugar_exp) or "—",
+            "client_id": str(client_id) if client_id is not None else "—",
+            "monto": _fmt_numero(monto) if monto else None,
+            "status_puja": status or None,
+            "gano": (status or "").upper() == "WINNING",
+            "se_registro": _fmt_fecha(se_registro) if se_registro else "—",
+        })
+
+    return {
+        "codigo_subasta": subasta.get("code", "—") or "—",
+        "total_oferentes": len(oferentes),
+        "oferentes": oferentes,
+    }
 
 
 def generar(fmi: str) -> tuple[bytes, str, list[str]]:
